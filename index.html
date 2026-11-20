@@ -59,7 +59,7 @@ let skipped = false, curAudio = null, talkAudio = null;
 
 // ---------- audio ----------
 let ctx;
-const VOICES = ["ann-chase", "ann-closed", "ann-detected", "ann-escaped", "ann-gameover", "ann-goal", "ann-hurry", "ann-line", "ann-malpractice", "ann-mission", "ann-noteligible", "ann-onair", "ann-quota", "ann-referral", "ann-scandal", "ann-target", "ann-time", "bark-1", "bark-2", "bark-3", "bark-4", "bark-5", "bark-6", "bark-7", "bark-8", "brief-10", "brief-2", "brief-4", "brief-6", "brief-7", "brief-8", "brief-9", "clear-1", "clear-2", "clear-3", "clear-4", "end-1", "end-2", "final-line", "flee-1", "flee-2", "flee-3", "flee-4", "flee-5", "min-1", "min-2", "min-3", "min-busted", "min-crash", "min-escape-boss", "min-escaped", "min-fail", "min-scandal", "min-win", "min-wrong", "ref-1", "ref-2", "ref-3", "taunt-1", "taunt-2", "taunt-3", "taunt-4", "vo-1", "vo-2", "vo-3", "vo-4", "vo-5", "vo-6", "vo-7", "vo-8", "vo-9"];
+const VOICES = ["ann-chase", "ann-closed", "ann-detected", "ann-escaped", "ann-gameover", "ann-goal", "ann-hurry", "ann-line", "ann-malpractice", "ann-mission", "ann-noteligible", "ann-onair", "ann-quota", "ann-referral", "ann-scandal", "ann-target", "ann-time", "b1", "b10", "b2", "b3", "b4", "b5", "b6", "b7", "b8", "b9", "bark-1", "bark-2", "bark-3", "bark-4", "bark-5", "bark-6", "bark-7", "bark-8", "brief-10", "brief-2", "brief-4", "brief-6", "brief-7", "brief-8", "brief-9", "clear-1", "clear-2", "clear-3", "clear-4", "end-1", "end-2", "final-line", "flee-1", "flee-2", "flee-3", "flee-4", "flee-5", "min-1", "min-2", "min-3", "min-busted", "min-crash", "min-escape-boss", "min-escaped", "min-fail", "min-scandal", "min-win", "min-wrong", "ref-1", "ref-2", "ref-3", "taunt-1", "taunt-2", "taunt-3", "taunt-4", "vo-1", "vo-2", "vo-3", "vo-4", "vo-5", "vo-6", "vo-7", "vo-8", "vo-9"];
 const BUF = {}, CH = {}; let vGain, speaking = 0;
 function loadVoice(name) {
   return BUF[name] || (BUF[name] = fetch(`vo/${name}.mp3`).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)));
@@ -166,16 +166,16 @@ let MAP = MAPS.street, WORLD = 0, TOP = 0, BOT = 0;
 let A = null;   // atlas frames
 const GEAR = ['c25', 'c26', 'c28', 'c32'];          // helmets and goggles hide symptoms
 const MISSIONS = [
-  { map: 'street', name: 'MAIN STREET', sick: 3, time: 90, brief: 'min-1', text: "Welcome to the team, Provider! Somewhere on this street, three citizens have cancer. Scan the crowd. Find them. Close their files. Remember: it's not a cost. It's compassion." },
-  { map: 'street', name: 'RUSH HOUR', sick: 4, time: 80, crowd: 85, pace: 1.35, brief: 'brief-2', text: "Rush hour, Provider! Eighty-five commuters, four cases, and everyone's in a hurry. Just like the surgical waitlist. Oh, wait. That one never moves." },
-  { map: 'rink', name: 'HOCKEY NIGHT', sick: 3, time: 75, brief: 'min-2', text: "Bad news, Provider. The budget is short again, so we're going where the people are: the big game! Three players on the ice have cancer. Only the sick ones. A healthy enforcer costs the league a fortune." },
-  { map: 'rink', name: 'PLAYOFFS', sick: 4, time: 75, lines: 22, brief: 'brief-4', text: "Playoffs! The arena is packed and both coaches are rolling two lines. Four cases between them. Keep track of who you've scanned. Line changes wait for no one. Unlike patients." },
-  { map: 'ski', name: 'APRES SKI', sick: 4, time: 85, gear: true, flee: 215, brief: 'min-3', text: 'Big day! Parliament is studying expanded eligibility, and the wealthy are hiding at the ski hill. Helmets and goggles slow your scanner. Healthy taxpayers fund your pension, Provider. Choose wisely.' },
-  { map: 'ski', name: 'WHITEOUT', sick: 5, time: 85, gear: true, flee: 215, storm: true, brief: 'brief-6', text: 'A whiteout on the mountain, Provider! Your scanner range is cut in half, and five cases are hiding in the snow. Think of it as a blizzard of savings.' },
-  { map: 'depot', name: 'BORDER TOWN', sick: 4, time: 85, buses: [4190], flee: 160, brief: 'brief-7', text: "Provider, we have a leak. Four cases are at the bus depot, and that bus goes to Seattle. If they make it across the border, they'll get treated. Imagine the paperwork. Stop them before they board." },
-  { map: 'depot', name: 'LAST BUS', sick: 5, time: 85, buses: [845, 4190], flee: 170, brief: 'brief-8', text: 'Last bus of the night, Provider! Two coaches, five cases, and every one of them has heard the rumours about American oncologists. Do not let a single one get their hopes up.' },
-  { map: 'hill', name: 'QUESTION PERIOD', sick: 3, time: 90, press: true, boss: true, brief: 'brief-9', text: "Question Period, Provider! Three cases among the staffers, the press is everywhere, and my security detail is on duty. Oh, and I'm due for my annual checkup. Don't bother. I have private insurance." },
-  { map: 'road', name: 'THE MOTORCADE', sick: 1, time: 60, chase: true, brief: 'brief-10', text: "The Minister scanned positive and he's running for the border! Get on the bike! Stop that limo before he reaches Seattle! And don't shoot the civilians!" },
+  { map: 'street', name: 'MAIN STREET', sick: 3, time: 90, brief: 'b1', text: "Provider. Mission briefing. Three citizens on Main Street have tested positive. They do not know it yet. Scan the crowd, locate the cases, close their files. Healthy taxpayers are not to be touched. It is not a cost. It is compassion." },
+  { map: 'street', name: 'RUSH HOUR', sick: 4, time: 80, crowd: 85, pace: 1.35, brief: 'b2', text: "Rush hour, Provider. Eighty-five commuters, four cases, all of them moving fast. Faster than the surgical waitlist, at any rate. Stay sharp. Fire only on what the scanner confirms." },
+  { map: 'rink', name: 'HOCKEY NIGHT', sick: 3, time: 75, brief: 'b3', text: "Budget shortfall. We are going where the people are: the arena. Three players on the ice are positive. The game will not stop for you. Mind the enforcers. A healthy one costs the league a fortune." },
+  { map: 'rink', name: 'PLAYOFFS', sick: 4, time: 75, lines: 22, brief: 'b4', text: "Playoffs. Both coaches are rolling two lines. Four cases between them. Every line change puts fresh faces on the ice, and your scans leave with the old ones. Keep count." },
+  { map: 'ski', name: 'APRES SKI', sick: 4, time: 85, gear: true, flee: 215, brief: 'b5', text: "The wealthy are hiding at the ski hill, Provider. Four cases at the bottom of the slope. Helmets and goggles will slow your scanner. Once flagged, they run. You will have to run faster." },
+  { map: 'ski', name: 'WHITEOUT', sick: 5, time: 85, gear: true, flee: 215, storm: true, brief: 'b6', text: "Weather advisory: whiteout conditions. Visibility near zero. Scanner range cut in half. Five cases are somewhere in that snow. Command calls it a blizzard of savings." },
+  { map: 'depot', name: 'BORDER TOWN', sick: 4, time: 85, buses: [4190], flee: 160, brief: 'b7', text: "We have a leak. Four cases are at the bus depot, and that bus goes to Seattle. If they cross the border, they get treated. Intercept them before they board. That is an order." },
+  { map: 'depot', name: 'LAST BUS', sick: 5, time: 85, buses: [845, 4190], flee: 170, brief: 'b8', text: "Last buses of the night. Two coaches, five cases, and every one of them has heard about American oncologists. Not one of them leaves this platform." },
+  { map: 'hill', name: 'QUESTION PERIOD', sick: 3, time: 90, press: true, boss: true, brief: 'b9', text: "Parliament Hill. Three cases among the staffers. The press is on site. If their camera sees you work, this ministry has never heard of you. Also, the Minister is due for his annual checkup. Scan him. Discreetly." },
+  { map: 'road', name: 'THE MOTORCADE', sick: 1, time: 60, chase: true, brief: 'b10', text: "Priority alert. The Minister scanned positive and is fleeing to a private clinic in Seattle. His motorcade is on the highway to the border. Take the bike. Stop that limo. Do not hit civilian vehicles, and dodge whatever his security throws." },
 ];
 let music = null;
 function playMusic(name, vol = 0.45) {
@@ -811,7 +811,7 @@ function drawBrief() {
   const m = S.m, n = Math.floor((performance.now() - S.t0) / 45);
   g.textAlign = 'left'; g.textBaseline = 'top';
   g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(0, 0, VW, 52);
-  g.font = font(14); g.fillStyle = '#ff2a3a'; g.fillText(`MISSION ${MI + 1}: ${m.name}`, 24, 10);
+  g.font = font(14); g.fillStyle = '#ff2a3a'; g.fillText(`MISSION ${MI + 1}: ${m.name}`, 24, 10); g.textAlign = 'right'; g.fillStyle = '#aaa'; g.font = font(9); g.fillText('MINISTRY BRIEFING OFFICER', VW - 24, 14); g.textAlign = 'left';
   g.font = font(10); g.fillStyle = '#ffd23a'; g.fillText(`CASES HIDING HERE: ${m.sick}   TIME: ${m.time}s   SHOOT ONLY THE SICK`, 24, 33);
   box(340, 168);
   g.font = font(11); g.fillStyle = '#fff';
