@@ -110,7 +110,7 @@ $('skip').onclick = () => { if (curAudio) curAudio.pause(); playMusic(null); sta
 const keys = {}; let pressed = null;
 const KEYMAP = { ArrowLeft: 'L', a: 'L', A: 'L', ArrowRight: 'R', d: 'R', D: 'R', ArrowUp: 'U', w: 'U', W: 'U', ArrowDown: 'D', s: 'D', S: 'D', ' ': 'SCAN', f: 'FIRE', F: 'FIRE', j: 'FIRE', Enter: 'FIRE', r: 'REF', R: 'REF', k: 'REF' };
 function press() { if (pressed) { const p = pressed; pressed = null; p(); } }
-function keyDown(k) { if (!keys[k] && mode === 'play') { if (k === 'FIRE') fire(); if (k === 'REF') refer(); } keys[k] = true; }
+function keyDown(k) { if (!keys[k] && mode === 'play') { if (k === 'FIRE') (S.m.chase ? chaseFire : fire)(); if (k === 'REF' && !S.m.chase) refer(); } keys[k] = true; }
 addEventListener('keydown', e => { const k = KEYMAP[e.key]; if (k) { keyDown(k); e.preventDefault(); } press(); });
 addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
 const anyPress = () => new Promise(r => setTimeout(() => { pressed = r; }, 400));
@@ -124,13 +124,16 @@ document.querySelectorAll('#pad button').forEach(b => {
 const VW = 960, VH = 540;
 const cv = $('game'), g = cv.getContext('2d');
 const img = src => { const i = new Image(); i.src = src; return i; };
-const IMG = { 'still-3': img('stills/still-3.jpg'), 'still-7': img('stills/still-7.jpg'), atlas: img('art/atlas.png'), bus: img('art/bus.png') };
+const FINAL = 'Until we all have private insurance again... this is healthcare. And justice.';
+const IMG = { final: img('stills/final.jpg'), 'still-3': img('stills/still-3.jpg'), 'still-7': img('stills/still-7.jpg'), atlas: img('art/atlas.png'), bus: img('art/bus.png') };
+const VEH = {}; for (const v of ['bike', 'limo', 'suv', 'suvthrow', 'pickup', 'minivan', 'taxi', 'hatch', 'obj-0', 'obj-1', 'obj-2', 'obj-3']) VEH[v] = img(`art/veh-${v}.png`);
 const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => 'c' + (a + i));
 const MAPS = {
   street: { panels: ['bg-1', 'bg-2', 'bg-3'], order: [0, 1, 2, 0], top: 440, bot: 508, crowd: 60, cast: range(2, 17), music: 'street' },
   rink: { panels: ['rk-1', 'rk-2', 'rk-3'], order: [0, 1, 2], top: 352, bot: 505, music: 'hockey', hockey: true, goalL: 180, goalR: 4680, goalY: 420 },
   ski: { panels: ['sk-1', 'sk-2', 'sk-3'], order: [0, 1, 2, 0], top: 450, bot: 512, crowd: 55, cast: range(25, 32), music: 'ski' },
   depot: { panels: ['dp-1', 'dp-2', 'dp-3'], order: [0, 1, 2], top: 440, bot: 512, crowd: 50, cast: ['c33', 'c34', 'c35', 'c33', 'c34', 'c35', ...range(2, 17)], music: 'street' },
+  road: { panels: ['hw-1', 'hw-2', 'hw-3'], order: [0, 1, 2], lanes: [330, 392, 454, 516], music: 'chase' },
   hill: { panels: ['pl-1', 'pl-2', 'pl-3'], order: [0, 1, 2], top: 460, bot: 514, crowd: 48, cast: ['c36', 'c37', 'c36', 'c37', 'c2', 'c8', 'c9', 'c15', 'c3', 'c11'], music: 'title', limo: 3560 },
 };
 const PANELS = {}; for (const m of Object.values(MAPS)) for (const p of m.panels) PANELS[p] = img(`art/${p}.jpg`);
@@ -147,8 +150,8 @@ const MISSIONS = [
   { map: 'ski', name: 'WHITEOUT', sick: 5, time: 85, gear: true, flee: 215, storm: true, brief: 'brief-6', text: 'A whiteout on the mountain, Provider! Your scanner range is cut in half, and five cases are hiding in the snow. Think of it as a blizzard of savings.' },
   { map: 'depot', name: 'BORDER TOWN', sick: 4, time: 85, buses: [4190], flee: 160, brief: 'brief-7', text: "Provider, we have a leak. Four cases are at the bus depot, and that bus goes to Seattle. If they make it across the border, they'll get treated. Imagine the paperwork. Stop them before they board." },
   { map: 'depot', name: 'LAST BUS', sick: 5, time: 85, buses: [845, 4190], flee: 170, brief: 'brief-8', text: 'Last bus of the night, Provider! Two coaches, five cases, and every one of them has heard the rumours about American oncologists. Do not let a single one get their hopes up.' },
-  { map: 'hill', name: 'PARLIAMENT HILL', sick: 4, time: 85, press: true, brief: 'brief-9', text: 'Welcome to Parliament Hill! Four cases are among the staffers today. But the press is here. If that camera sees you working, it is a scandal. Compassion is best done off the record.' },
-  { map: 'hill', name: 'QUESTION PERIOD', sick: 5, time: 90, press: true, boss: true, brief: 'brief-10', text: 'Question Period, Provider! Five cases on the Hill, the press is everywhere, and my security detail is on duty. Wrap this up quickly. I have a flight to catch. Personal matter. Nothing medical.' },
+  { map: 'hill', name: 'QUESTION PERIOD', sick: 3, time: 90, press: true, boss: true, brief: 'brief-9', text: "Question Period, Provider! Three cases among the staffers, the press is everywhere, and my security detail is on duty. Oh, and I'm due for my annual checkup. Don't bother. I have private insurance." },
+  { map: 'road', name: 'THE MOTORCADE', sick: 1, time: 60, chase: true, brief: 'brief-10', text: "The Minister scanned positive and he's running for the border! Get on the bike! Stop that limo before he reaches Seattle! And don't shoot the civilians!" },
 ];
 let music = null;
 function playMusic(name, vol = 0.45) {
@@ -193,6 +196,7 @@ function play() {
   const m = MISSIONS[MI];
   MAP = MAPS[m.map]; WORLD = PW * MAP.order.length; TOP = MAP.top; BOT = MAP.bot;
   S = { m, t: m.time, found: 0, closed: 0, saved: 0, referred: 0, refs: 1, p: { x: MAP.hockey ? WORLD / 2 - 500 : 400, y: (TOP + BOT) / 2, dir: 1, walk: 0, gunT: 0 }, people: [], picks: [], floats: [], tracer: null, pickT: 8, scanT: null, flash: 0, fireCd: 0, hum: 0, clock: 0, lastDet: -9, score: [0, 0], hurry: false };
+  if (m.chase) { setupChase(); mode = 'play'; voice('ann-chase'); playMusic('chase', 0.45); return; }
   if (MAP.hockey) setupHockey();
   else {
     const cast = MAP.cast.filter(c => A[c]);
@@ -201,7 +205,7 @@ function play() {
   }
   let need = m.sick;
   if (m.boss) {
-    const boss = mkPerson(WORLD / 2 + 300, 'c41'); Object.assign(boss, { sick: true, boss: true, sp: 35 }); S.people.push(boss); need--;
+    const boss = mkPerson(WORLD / 2 + 300, 'c41'); Object.assign(boss, { sick: true, boss: true, sp: 35 }); S.people.push(boss);
     for (const k of [-1, 1]) { const gd = mkPerson(boss.x + k * 70, 'c40'); Object.assign(gd, { guard: boss, off: k }); S.people.push(gd); }
   }
   if (m.press) {
@@ -232,12 +236,14 @@ async function endMission(win, why) {
   if (++MI < MISSIONS.length) { brief(); return; }
   mode = 'end'; S = { t0: performance.now(), stage: 0 };
   const say3 = n => new Promise(r => { const a = voice(n); a.onended = r; a.onerror = r; });
-  await say3('min-win');
-  S.stage = 1; S.t1 = performance.now(); playMusic(null);
-  await wait(600); tone(880, 0.12); await wait(250); tone(440, 0.4);
-  await say3('end-1'); await say3('end-2');
-  S.stage = 2; await wait(800); await say3('vo-8'); voice('ann-gameover');
-  S.stage = 3;
+  playMusic('title', 0.18);
+  await wait(2500);
+  S.stage = 1; S.t1 = performance.now();                // her scanner beeps, pointed at her
+  for (let i = 0; i < 3; i++) { tone(880, 0.12); await wait(180); tone(440, 0.3); await wait(520); }
+  await wait(2200);
+  S.stage = 2; S.t2 = performance.now(); playMusic(null);
+  await wait(700); await say3('final-line'); await wait(2500);
+  S.stage = 3;                                          // the tally and the card, in silence
   await anyPress();
   startGame();
 }
@@ -271,6 +277,7 @@ function fire() {
   }
   S.tracer = { x0: P.x + P.dir * 70, y0: P.y - 92, x1: q ? q.x : P.x + P.dir * 480, y1: q ? q.y - 80 : P.y - 92, t: 0.07 };
   if (!q) return;
+  if (q.boss) { float('BLOCKED BY SECURITY!', q.x, q.y - 160, '#ffd23a'); tone(300, 0.1); return; }
   q.state = 'dead'; q.dt = 0;
   if (!q.sick) {
     q.bubble = null;
@@ -310,6 +317,7 @@ function detect(q) {
   if (S.clock - S.lastDet > 4) { S.lastDet = S.clock; setTimeout(() => voice('ann-detected'), 1400); }
 }
 function update(dt) {
+  if (S.m.chase) return updateChase(dt);
   const P = S.p;
   S.t -= dt; S.clock += dt; S.fireCd -= dt; P.gunT -= dt; S.flash -= dt;
   if (S.tracer && (S.tracer.t -= dt) <= 0) S.tracer = null;
@@ -362,7 +370,11 @@ function update(dt) {
   for (const p of S.people) {
     if (p.state === 'run' && p.door !== undefined) {
       p.dir = Math.sign(p.door - p.x) || p.dir;
-      if (Math.abs(p.door - p.x) < 24) { p.state = 'gone'; S.bossOut = !!p.boss; float(p.boss ? 'TO THE PRIVATE CLINIC!' : 'BOARDED FOR SEATTLE!', p.x, p.y - 160, '#ff4a5a'); endMission(false, 'escaped'); return; }
+      if (Math.abs(p.door - p.x) < 24) {
+        p.state = 'gone';
+        if (p.boss) { S.bossGone = true; float("HE'S GETTING AWAY!", p.x, p.y - 160, '#ffd23a'); talk('min-escape-boss'); continue; }
+        float('BOARDED FOR SEATTLE!', p.x, p.y - 160, '#ff4a5a'); endMission(false, 'escaped'); return;
+      }
     }
     if (p.guard && alive(p) && alive(p.guard)) {
       const b = p.guard, tx = b.x + (b.state === 'run' ? -b.dir * 70 : p.off * 70);
@@ -376,8 +388,166 @@ function update(dt) {
     }
   }
   S.people = S.people.filter(p => p.state !== 'gone');
-  if (S.closed + S.referred >= S.m.sick) endMission(true);
+  if (S.closed + S.referred >= S.m.sick && (!S.m.boss || S.bossGone)) endMission(true);
   else if (S.t <= 0) endMission(false, 'time');
+}
+
+// ---------- the chase ----------
+const LANES = () => MAP.lanes;
+const VLEN = { bike: 230, limo: 470, suv: 270, pickup: 300, minivan: 280, taxi: 260, hatch: 220 };
+const vlen = k => VEH[k].naturalWidth || VLEN[k];
+function setupChase() {
+  S.van = { x: 0, lane: 2, y: LANES()[2], v: 620, hit: 0 };
+  S.limo = { kind: 'limo', x: 900, lane: 1, y: LANES()[1], v: 640, hp: 6, flash: 0, slow: 0, next: 2, spin: 0 };
+  S.suv = { kind: 'suv', x: 560, lane: 2, y: LANES()[2], v: 640 };
+  S.cars = []; S.spawn = 0.5; S.taunt = 4; S.shake = 0; S.over = false; S.junk = []; S.throwT = 3;
+  S.p = { x: 0, y: 0, dir: 1, walk: 0, gunT: 0 };
+}
+function laneBlocked(lane, x, len) { return S.cars.some(c => c.lane === lane && c.x > x - 60 && c.x < x + len + 120); }
+function updateChase(dt) {
+  const V = S.van, L = S.limo, lanes = LANES();
+  S.t -= dt; S.clock += dt; S.fireCd -= dt; S.flash -= dt; S.shake = Math.max(0, S.shake - dt);
+  if (S.tracer && (S.tracer.t -= dt) <= 0) S.tracer = null;
+  if (S.over) { L.spin += dt; L.v = Math.max(0, L.v - 900 * dt); L.x += L.v * dt; V.v = Math.max(0, V.v - 500 * dt); V.x += V.v * dt; for (const f of S.floats) f.t += dt; return; }
+  // the van: up/down change lane, left/right brake and boost
+  if (!S.laneCd || S.laneCd < S.clock) {
+    if (keys.U && V.lane > 0) { V.lane--; S.laneCd = S.clock + 0.22; }
+    if (keys.D && V.lane < 3) { V.lane++; S.laneCd = S.clock + 0.22; }
+  }
+  V.y += (lanes[V.lane] - V.y) * Math.min(1, dt * 10);
+  const want = V.hit > 0 ? 260 : keys.R ? 820 : keys.L ? 470 : 650;
+  V.v += (want - V.v) * Math.min(1, dt * 2.5); V.hit -= dt; V.x += V.v * dt;
+  // the limo weaves, dodges traffic, slows when hit
+  L.next -= dt; L.slow -= dt; L.flash -= dt;
+  const blocked = laneBlocked(L.lane, L.x, vlen('limo'));
+  if (L.next <= 0 || blocked) {
+    const opts = [L.lane - 1, L.lane + 1].filter(l => l >= 0 && l <= 3 && !laneBlocked(l, L.x - 100, vlen('limo') + 100));
+    if (opts.length) L.lane = pick(opts);
+    L.next = 1.5 + Math.random() * 2.5;
+  }
+  L.y += (lanes[L.lane] - L.y) * Math.min(1, dt * 4);
+  L.v = (L.slow > 0 ? 470 : 660) + Math.sin(S.clock * 0.7) * 50;
+  L.x += L.v * dt;
+  // keep him on screen ahead of the van, but able to pull away
+  L.x = clamp(L.x, V.x + 260, V.x + 640);
+  // the escort sits in the van's lane, between the van and the limo
+  const G = S.suv;
+  G.lane = V.lane === L.lane ? (S.clock % 6 < 3.5 ? V.lane : G.lane) : G.lane;
+  if (Math.random() < dt * 0.4) G.lane = V.lane;
+  G.y += (lanes[G.lane] - G.y) * Math.min(1, dt * 3);
+  G.x += ((L.x - 360) - G.x) * Math.min(1, dt * 1.5);
+  // traffic: slower cars to weave through
+  if ((S.spawn -= dt) <= 0) {
+    S.spawn = 0.7 + Math.random() * 0.9;
+    const kind = pick(['pickup', 'minivan', 'taxi', 'hatch']), lane = Math.random() * 4 | 0;
+    if (!laneBlocked(lane, V.x + 1150, vlen(kind))) S.cars.push({ kind, lane, y: lanes[lane], x: V.x + 1200, v: 330 + Math.random() * 120 });
+  }
+  for (const c of S.cars) c.x += c.v * dt;
+  S.cars = S.cars.filter(c => c.x > V.x - 600);
+  // crashing into traffic costs speed
+  for (const c of [...S.cars, G]) {
+    if (c.lane === V.lane && Math.abs(c.y - V.y) < 30 && V.x + vlen('bike') > c.x && V.x < c.x + vlen(c.kind) && V.hit <= 0) {
+      V.hit = 1.1; V.v = Math.min(V.v, 300); S.shake = 0.4; tone(90, 0.3, 'sawtooth', 0.2); tone(500, 0.2, 'square', 0.08, 200);
+      float('CRASH!', V.x + 200, V.y - 160, '#ff9a2a');
+    }
+  }
+  if ((S.throwT -= dt) <= 0 && G.x > V.x + 150) {
+    S.throwT = 1.2 + Math.random() * 0.8; G.throwing = 0.45;
+    S.junk.push({ obj: Math.random() * 4 | 0, x: G.x + 90, y0: G.y - 120, ty: lanes[V.lane], lane: V.lane, t: 0, dur: 1.0, vx: G.v - 430, rot: 0 });
+    tone(700, 0.08, 'triangle', 0.05, 300);
+  }
+  G.throwing = (G.throwing || 0) - dt;
+  for (const j of S.junk) {
+    j.t += dt; j.rot += dt * 9;
+    j.x += (j.t < j.dur ? j.vx : 0) * dt;        // once it lands it lies on the road
+    const k = Math.min(1, j.t / j.dur); j.y = j.y0 + (j.ty - j.y0) * k - Math.sin(k * Math.PI) * 140;
+    if (k > 0.8 && !j.hit && j.lane === V.lane && Math.abs(V.y - j.ty) < 30 && j.x > V.x - 20 && j.x < V.x + vlen('bike')) {
+      j.hit = true; V.hit = 1.2; V.v = Math.min(V.v, 280); S.shake = 0.4; tone(160, 0.25, 'sawtooth', 0.2);
+      float(['BRIEFCASE!', 'WAITLIST!', 'HOT COFFEE!', 'CONE!'][j.obj], V.x + 160, V.y - 160, '#ff9a2a');
+    }
+  }
+  S.junk = S.junk.filter(j => !j.hit && j.x > V.x - 400);
+  if ((S.taunt -= dt) <= 0) { S.taunt = 7 + Math.random() * 4; const i = 1 + (Math.random() * 4 | 0); talk(`taunt-${i}`); S.limoBubble = { text: ['You will never catch me! I have a NEXUS card!', 'My wait time in Seattle? Twenty minutes!', 'Driver, faster! Bill it to the taxpayer!', 'I voted for this, but not for ME!'][i - 1], t: 3 }; }
+  if (S.limoBubble && (S.limoBubble.t -= dt) <= 0) S.limoBubble = null;
+  for (const f of S.floats) f.t += dt;
+  S.floats = S.floats.filter(f => f.t < 1.8);
+  if (!S.hurry && S.t < 20) { S.hurry = true; voice('ann-hurry'); }
+  if (S.t <= 0) { S.bossOut = true; endMission(false, 'escaped'); }
+}
+function chaseFire() {
+  if (S.fireCd > 0 || S.over) return;
+  S.fireCd = 0.35;
+  const V = S.van, gx = V.x + vlen('bike') - 40, gy = V.y - 95;
+  bang(); S.flash = 0.06;
+  // the first vehicle ahead in the van's lane takes the bullet
+  const hit = [S.limo, S.suv, ...S.cars].filter(c => Math.abs(c.y - V.y) < 30 && c.x > V.x + vlen('bike') - 60 && c.x < V.x + 1300).sort((a, b) => a.x - b.x)[0];
+  S.tracer = { x0: gx, y0: gy, x1: hit ? hit.x + 40 : gx + 900, y1: hit ? hit.y - 50 : gy, t: 0.07 };
+  if (!hit) return;
+  if (hit !== S.limo) { float(hit.kind === 'suv' ? 'SECURITY DETAIL!' : 'CIVILIAN VEHICLE!', hit.x + 100, hit.y - 150, '#ff4a5a'); endMission(false, 'wrong'); return; }
+  const L = S.limo; L.hp--; L.flash = 0.15; L.slow = 0.9; tone(1400, 0.05, 'square', 0.12);
+  float(L.hp > 0 ? `HIT! ${L.hp} TO GO` : 'TARGET DOWN!', L.x + 200, L.y - 160, '#ffd23a');
+  if (L.hp <= 0) {
+    S.over = true; S.closed = 1; S.found = 1; const amt = 2400000; S.saved += amt;
+    voice('ann-target'); setTimeout(() => talk('min-crash'), 900);
+    float('+' + money(amt) + ' PENSION SAVED', L.x + 200, L.y - 130, '#7aff9a');
+    setTimeout(() => { if (S.over && mode === 'play') endMission(true); }, 6500);
+  }
+}
+function vehicle(kind, x, y, cam, flip) {
+  const im = VEH[kind]; if (!im.complete || !im.naturalWidth) return;
+  g.drawImage(im, Math.round(x - cam), Math.round(y - im.height));
+}
+function drawChase() {
+  const V = S.van, L = S.limo, cam = V.x - 140 + (S.shake > 0 ? (Math.random() - 0.5) * 16 : 0);
+  g.imageSmoothingEnabled = false;
+  const first = Math.floor(cam / PW);
+  for (let i = first; i <= first + 1; i++) g.drawImage(PANELS[MAP.panels[((i % 3) + 3) % 3]], Math.round(i * PW - cam), 0, PW, VH);
+  const all = [...S.cars, S.suv, L, { kind: 'bike', x: V.x, y: V.y }].sort((a, b) => a.y - b.y);
+  for (const j of S.junk) {                     // a shadow on the road shows where it will land
+    if (j.t < j.dur) { g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(j.x - cam + (j.dur - j.t) * j.vx, j.ty, 26, 7, 0, 0, 7); g.fill(); }
+  }
+  for (const c of all) {
+    if (c === S.suv && S.suv.throwing > 0 && VEH.suvthrow.naturalWidth) { vehicle('suvthrow', c.x, c.y, cam); continue; }
+    if (c === L && L.spin > 0) {
+      const im = VEH.limo; g.save(); g.translate(L.x - cam + im.width / 2, L.y - im.height / 2); g.rotate(L.spin * 3);
+      g.drawImage(im, -im.width / 2, -im.height / 2); g.restore(); continue;
+    }
+    vehicle(c.kind, c.x, c.y + Math.sin(S.clock * 30 + c.x) * 1.2, cam);
+    if (c === L && L.flash > 0) { g.fillStyle = 'rgba(255,255,255,.6)'; g.fillRect(L.x - cam, L.y - VEH.limo.height, VEH.limo.width, VEH.limo.height); }
+  }
+  for (const j of S.junk) {
+    const im = VEH['obj-' + j.obj]; if (!im.naturalWidth) continue;
+    g.save(); g.translate(j.x - cam, j.y - im.height / 2); if (j.t < j.dur) g.rotate(j.rot); g.drawImage(im, -im.width / 2, -im.height / 2); g.restore();
+  }
+  if (S.tracer) {
+    const t = S.tracer;
+    g.strokeStyle = '#fff6b0'; g.lineWidth = 3; g.beginPath(); g.moveTo(t.x0 - cam, t.y0); g.lineTo(t.x1 - cam, t.y1); g.stroke();
+    g.fillStyle = '#ff9a2a'; g.beginPath(); g.arc(t.x0 - cam, t.y0, 12, 0, 7); g.fill();
+  }
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (const f of S.floats) {
+    g.globalAlpha = clamp(1.8 - f.t, 0, 1); g.font = font(12);
+    const fx = clamp(f.x - cam, 160, VW - 160), fy = f.y - 40 - f.t * 30, fw = g.measureText(f.text).width + 16;
+    g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(fx - fw / 2, fy - 13, fw, 26); g.fillStyle = f.color; g.fillText(f.text, fx, fy + 1);
+  }
+  g.globalAlpha = 1;
+  if (S.limoBubble && L.spin === 0) bubble(S.limoBubble.text, clamp(L.x - cam + 330, 140, VW - 140), L.y - VEH.limo.height - 6);
+  if (S.flash > 0) { g.fillStyle = 'rgba(255,255,220,.3)'; g.fillRect(0, 0, VW, VH); }
+  // HUD: the border clock, the limo's armour, distance
+  const secs = Math.ceil(Math.max(0, S.t));
+  g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(0, 0, VW, 54);
+  g.font = font(12); g.textBaseline = 'top'; g.textAlign = 'left'; g.fillStyle = '#ff2a3a'; g.fillText('M10 THE MOTORCADE', 16, 10);
+  g.font = font(9); g.fillStyle = '#7aff9a'; g.fillText(`US BORDER IN ${(secs * 0.33).toFixed(1)} KM`, 16, 34);
+  g.fillStyle = 'rgba(0,0,0,.9)'; g.fillRect(VW / 2 - 92, 0, 184, 74); g.strokeStyle = S.t < 20 ? '#ff2a3a' : '#ffd23a'; g.lineWidth = 3; g.strokeRect(VW / 2 - 92, 1, 184, 72);
+  g.font = font(28); g.textAlign = 'center'; g.fillStyle = S.t < 20 && Math.floor(performance.now() / 300) % 2 ? '#ff2a3a' : '#fff';
+  g.fillText(`${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`, VW / 2, 14);
+  g.font = font(9); g.fillStyle = '#aaa'; g.fillText('STOP THE LIMO', VW / 2, 54);
+  g.textAlign = 'right'; g.font = font(10); g.fillStyle = '#ffd23a'; g.fillText('LIMO', VW - 16 - 6 * 22 - 10, 12);
+  for (let i = 0; i < 6; i++) { g.fillStyle = i < L.hp ? '#ff2a3a' : '#333'; g.fillRect(VW - 16 - (6 - i) * 22, 10, 18, 14); }
+  if (S.clock < 6) {
+    g.textAlign = 'center'; g.font = font(10); g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(110, VH - 44, 740, 30);
+    g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.fillText('UP/DOWN CHANGE LANE  RIGHT BOOST  LEFT BRAKE  F FIRE', VW / 2, VH - 28);
+  }
 }
 
 // ---------- hockey ----------
@@ -500,6 +670,7 @@ function bubble(text, sx, sy) {
   g.fillStyle = '#000'; lines.forEach((l, i) => g.fillText(l, bx + 10, by + 9 + i * 16));
 }
 function drawPlay() {
+  if (S.m.chase) return drawChase();
   const P = S.p, cam = clamp(P.x - VW * 0.45, 0, WORLD - VW);
   g.imageSmoothingEnabled = false;
   const first = Math.floor(cam / PW);
@@ -624,7 +795,7 @@ function drawResult() {
   const head = { wrong: 'MALPRACTICE!', escaped: 'ESCAPED!', scandal: 'SCANDAL!', time: 'TIME UP!' }[S.why];
   g.font = font(26); g.fillStyle = S.win ? '#ffd23a' : '#ff2a3a'; g.fillText(S.win ? 'ALL FILES CLOSED!' : head, VW / 2, 80);
   g.font = font(12); g.fillStyle = '#fff';
-  const why = { wrong: ['YOU SHOT A HEALTHY TAXPAYER.', 'THE PROVINCE LOSES THEIR TAX REVENUE.'], escaped: [S.bossOut ? 'THE MINISTER REACHED HIS LIMO.' : 'A PATIENT BOARDED THE BUS TO SEATTLE.', S.bossOut ? 'HE WILL BE TREATED IN A PRIVATE US CLINIC.' : 'THEY WILL BE TREATED IN THE UNITED STATES.'], scandal: ['THE CAMERA CAUGHT YOU ON LIVE TV.', 'THE MINISTER HAS NEVER MET YOU.'] }[S.why];
+  const why = { wrong: ['YOU SHOT A HEALTHY TAXPAYER.', 'THE PROVINCE LOSES THEIR TAX REVENUE.'], escaped: [S.bossOut ? 'THE MINISTER CROSSED THE BORDER.' : 'A PATIENT BOARDED THE BUS TO SEATTLE.', S.bossOut ? 'HE WILL BE TREATED IN A PRIVATE US CLINIC.' : 'THEY WILL BE TREATED IN THE UNITED STATES.'], scandal: ['THE CAMERA CAUGHT YOU ON LIVE TV.', 'THE MINISTER HAS NEVER MET YOU.'] }[S.why];
   if (!S.win && why) { g.fillText(why[0], VW / 2, 160); g.fillStyle = '#aaa'; g.fillText(why[1], VW / 2, 190); }
   g.fillStyle = '#fff'; g.fillText(`CASES FOUND: ${S.found}/${S.m.sick}`, VW / 2, 240);
   g.fillStyle = '#7aff9a'; g.fillText(`PROVINCE SAVED: ${money(S.saved)}`, VW / 2, 272);
@@ -634,22 +805,27 @@ function drawResult() {
   if (blinkSlow()) { g.fillStyle = '#ff2a3a'; g.fillText('PRESS START', VW / 2, 440); }
 }
 function drawEnd() {
-  if (S.stage === 0) {
-    cover(IMG['still-3']);
-    box(390, 80); g.font = font(11); g.fillStyle = '#fff'; g.textAlign = 'left'; g.textBaseline = 'top';
-    wrapLines('Outstanding work. The province thanks you. Your bonus is a commemorative pin.', VW - 260).forEach((l, i) => g.fillText(l, 124, 408 + i * 21));
-    return;
-  }
-  if (S.stage === 1) {
-    g.fillStyle = '#100'; g.fillRect(0, 0, VW, VH);
-    const red = Math.floor(performance.now() / 250) % 2;
-    g.save(); g.translate(VW / 2, 420); g.scale(2, 2); spr(A.c1.scan[0], 0, 0, false); g.restore();
-    g.fillStyle = red ? 'rgba(255,40,60,.35)' : 'rgba(255,40,60,.1)'; g.fillRect(0, 0, VW, VH);
-    g.textAlign = 'center'; g.textBaseline = 'top'; g.font = font(22); g.fillStyle = '#ff2a3a';
-    if (red) g.fillText('MALIGNANCY DETECTED', VW / 2, 50);
-    g.font = font(11); g.fillStyle = '#fff'; g.fillText('SUBJECT: TERMINAL CARE PROVIDER', VW / 2, 96);
-    g.fillStyle = '#ffd23a'; g.fillText('NEXT ONCOLOGY APPOINTMENT: 14 MONTHS', VW / 2, 470);
-    g.fillStyle = '#ff2a3a'; g.fillText('NEXT END OF LIFE CARE APPOINTMENT: TODAY', VW / 2, 496);
+  if (S.stage < 3) {
+    g.fillStyle = '#000'; g.fillRect(0, 0, VW, VH);
+    const k = Math.min(1, (performance.now() - S.t0) / 1500), z = 1;
+    if (IMG.final.naturalWidth) { g.globalAlpha = k; g.drawImage(IMG.final, VW / 2 - 360 * z, 270 - 270 * z, 720 * z, 540 * z); g.globalAlpha = 1; }
+    if (S.stage >= 1) {
+      const red = Math.floor(performance.now() / 250) % 2;
+      if (S.stage === 1) { g.fillStyle = red ? 'rgba(255,40,60,.22)' : 'rgba(255,40,60,.06)'; g.fillRect(0, 0, VW, VH); }
+      g.fillStyle = 'rgba(0,0,0,.8)'; g.fillRect(VW - 330, 250, 300, 92); g.strokeStyle = '#ff2a3a'; g.lineWidth = 2; g.strokeRect(VW - 330, 250, 300, 92);
+      g.textAlign = 'left'; g.textBaseline = 'top'; g.font = font(10);
+      g.fillStyle = '#ff2a3a'; if (S.stage > 1 || red) g.fillText('MALIGNANCY DETECTED', VW - 318, 262);
+      g.fillStyle = '#fff'; g.fillText('SUBJECT: PROVIDER', VW - 318, 286);
+      g.fillStyle = '#ffd23a'; g.fillText('NEXT ONCOLOGY: 14 MO', VW - 318, 310);
+    }
+    if (S.stage === 2) {
+      const n = Math.floor((performance.now() - S.t2 - 700) / 55);
+      if (n > 0) {
+        g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(20, 110, 330, 132); g.strokeStyle = '#ffd23a'; g.lineWidth = 3; g.strokeRect(20, 110, 330, 132);
+        g.font = font(12); g.fillStyle = '#fff'; g.textAlign = 'left'; g.textBaseline = 'top';
+        wrapLines(FINAL.slice(0, n), 290).forEach((l, i) => g.fillText(l, 38, 126 + i * 22));
+      }
+    }
     return;
   }
   g.fillStyle = '#000'; g.fillRect(0, 0, VW, VH);
@@ -662,7 +838,7 @@ function drawEnd() {
   g.fillStyle = '#ff2a3a'; g.fillText('THE SYSTEM REFERRED: 0', VW / 2, 174);
   g.font = font(11); g.fillStyle = '#fff'; wrapLines(TAG, 700).forEach((l, i) => g.fillText(l, VW / 2, 240 + i * 22));
   g.font = font(9); g.fillStyle = '#aaa'; wrapLines(FACT, 720).forEach((l, i) => g.fillText(l, VW / 2, 300 + i * 18));
-  if (S.stage === 3 && blinkSlow()) { g.font = font(11); g.fillStyle = '#ff2a3a'; g.fillText('GAME OVER - PRESS START', VW / 2, 460); }
+  if (blinkSlow()) { g.font = font(11); g.fillStyle = '#ff2a3a'; g.fillText('GAME OVER - PRESS START', VW / 2, 460); }
 }
 let last = 0;
 function loop(t) {
