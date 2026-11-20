@@ -246,9 +246,9 @@ function play() {
   if (m.chase) { setupChase(); mode = 'play'; voice('ann-chase'); playMusic('chase', 0.45); return; }
   if (MAP.hockey) setupHockey();
   else {
-    const cast = MAP.cast.filter(c => A[c]);
+    const cast = [...new Set(MAP.cast)].filter(c => A[c]).sort(() => Math.random() - 0.5);
     const n = m.crowd || MAP.crowd;
-    for (let i = 0; i < n; i++) { const q = mkPerson(200 + (WORLD - 400) * (i + Math.random()) / n, pick(cast)); q.sp *= m.pace || 1; S.people.push(q); }
+    for (let i = 0; i < n; i++) { const q = mkPerson(200 + (WORLD - 400) * (i + Math.random()) / n, cast[i % cast.length]); q.sp *= m.pace || 1; S.people.push(q); }
   }
   let need = m.sick;
   if (m.boss) {
@@ -779,10 +779,11 @@ function updateHockey(dt) {
 }
 
 // ---------- drawing ----------
-function spr(fr, x, y, flip) {
+const depth = y => (BOT > TOP ? 0.9 + 0.1 * clamp((y - TOP) / (BOT - TOP), 0, 1) : 1);
+function spr(fr, x, y, flip, k = 1) {
   const [sx, sy, w, h, ax, ay] = fr;
-  if (flip) { g.save(); g.translate(Math.round(x), Math.round(y)); g.scale(-1, 1); g.drawImage(IMG.atlas, sx, sy, w, h, -ax, -ay, w, h); g.restore(); }
-  else g.drawImage(IMG.atlas, sx, sy, w, h, Math.round(x - ax), Math.round(y - ay), w, h);
+  g.save(); g.translate(Math.round(x), Math.round(y)); g.scale(flip ? -k : k, k);
+  g.drawImage(IMG.atlas, sx, sy, w, h, -ax, -ay, w, h); g.restore();
 }
 function personFrame(p) {
   const a = A[p.c];
@@ -838,7 +839,7 @@ function drawPlay() {
     g.strokeStyle = '#000'; g.lineWidth = 2; g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - 8); g.moveTo(x, y); g.lineTo(x + 6, y + 2); g.stroke();
     g.font = font(8); g.textAlign = 'center'; g.textBaseline = 'top'; g.fillStyle = '#7aff9a'; g.fillText('+10', x, y + 20);
   }
-  for (const d of S.m.buses || []) g.drawImage(IMG.bus, d - IMG.bus.width * 0.82, TOP - 268);
+  for (const d of S.m.buses || []) g.drawImage(IMG.bus, d - IMG.bus.width * 0.82, TOP - IMG.bus.height - 6);
   const crew = S.crew && alive(S.crew) ? S.crew : null;
   if (crew) {
     const x0 = crew.x + crew.dir * 40, x1 = crew.x + crew.dir * 460, y = crew.y - 70;
@@ -850,18 +851,18 @@ function drawPlay() {
   const blink = Math.floor(performance.now() / 250) % 2;
   for (const e of ents) {
     g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(e.x, e.y, 30, 7, 0, 0, 7); g.fill();
-    if (e === P) { spr(playerFrame(), P.x, P.y, P.dir < 0); continue; }
+    if (e === P) { spr(playerFrame(), P.x, P.y, P.dir < 0, depth(P.y)); continue; }
     if (e === S.puck) { g.fillStyle = '#111'; g.beginPath(); g.ellipse(e.x, e.y, 9, 4, 0, 0, 7); g.fill(); continue; }
     if (e.state === 'dead') {
       g.globalAlpha = clamp(10 - e.dt, 0, 1);
       if (e.flashT > 0) g.filter = 'brightness(3)';
-      if (e.dt < 0.25) { g.save(); g.translate(e.x, e.y); g.rotate((e.fall || 1) * e.dt * 6); spr(A[e.c].walk[0], 0, 0, e.dir < 0); g.restore(); }
-      else spr(A[e.c].dead[0], e.x, e.y, e.dir < 0);
+      if (e.dt < 0.25) { g.save(); g.translate(e.x, e.y); g.rotate((e.fall || 1) * e.dt * 6); spr(A[e.c].walk[0], 0, 0, e.dir < 0, depth(e.y)); g.restore(); }
+      else spr(A[e.c].dead[0], e.x, e.y, e.dir < 0, depth(e.y));
       g.filter = 'none';
       g.globalAlpha = 1; continue;
     }
     if (e.state === 'run' && e.detected) { g.fillStyle = blink ? 'rgba(255,40,60,.55)' : 'rgba(255,40,60,.25)'; g.beginPath(); g.ellipse(e.x, e.y, 36, 9, 0, 0, 7); g.fill(); }
-    spr(personFrame(e), e.x, e.y, e.dir < 0);
+    spr(personFrame(e), e.x, e.y, e.dir < 0, depth(e.y));
     const top = e.y - 150;
     if (e.state === 'run' && e.detected && blink) { g.fillStyle = '#ff2a3a'; g.fillRect(e.x - 4, top - 24, 8, 18); g.fillRect(e.x - 4, top - 2, 8, 6); }
     if (e.scanned && !e.sick) { g.strokeStyle = '#3f6'; g.lineWidth = 4; g.beginPath(); g.moveTo(e.x - 8, top - 6); g.lineTo(e.x - 2, top); g.lineTo(e.x + 9, top - 14); g.stroke(); }
