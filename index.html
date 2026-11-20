@@ -59,10 +59,34 @@ let skipped = false, curAudio = null, talkAudio = null;
 
 // ---------- audio ----------
 let ctx;
-function voice(name) { const a = new Audio(`vo/${name}.mp3`); a.play().catch(() => {}); return a; }
-const say = name => new Promise(r => { const a = curAudio = voice(name); a.onended = r; a.onerror = r; });
-function talk(name) { if (talkAudio) talkAudio.pause(); talkAudio = voice(name); }
-async function type(el, text, ms) { el.textContent = ''; for (const ch of text) { if (skipped) return; el.textContent += ch; await wait(ms); } }
+const VOICES = ["ann-chase", "ann-closed", "ann-detected", "ann-escaped", "ann-gameover", "ann-goal", "ann-hurry", "ann-line", "ann-malpractice", "ann-mission", "ann-noteligible", "ann-onair", "ann-quota", "ann-referral", "ann-scandal", "ann-target", "ann-time", "bark-1", "bark-2", "bark-3", "bark-4", "bark-5", "bark-6", "bark-7", "bark-8", "brief-10", "brief-2", "brief-4", "brief-6", "brief-7", "brief-8", "brief-9", "clear-1", "clear-2", "clear-3", "clear-4", "end-1", "end-2", "final-line", "flee-1", "flee-2", "flee-3", "flee-4", "flee-5", "min-1", "min-2", "min-3", "min-busted", "min-crash", "min-escape-boss", "min-escaped", "min-fail", "min-scandal", "min-win", "min-wrong", "ref-1", "ref-2", "ref-3", "taunt-1", "taunt-2", "taunt-3", "taunt-4", "vo-1", "vo-2", "vo-3", "vo-4", "vo-5", "vo-6", "vo-7", "vo-8", "vo-9"];
+const BUF = {}, CH = {}; let vGain, speaking = 0;
+function loadVoice(name) {
+  return BUF[name] || (BUF[name] = fetch(`vo/${name}.mp3`).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)));
+}
+function preloadVoices() { let i = 0; const next = () => { if (i < VOICES.length) loadVoice(VOICES[i++]).finally(next); }; for (let k = 0; k < 4; k++) next(); }
+// one line per channel ('ann' announcer, 'talk' characters, 'intro' narrator): a new line stops the old one
+function voice(name, ch = 'ann') {
+  const h = { onended: null, onerror: null, done: false, pause() { this.stopped = true; if (this.src) { try { this.src.stop(); } catch (e) {} } else this.finish(); },
+    finish() { if (this.done) return; this.done = true; if (this.src) speaking--; duck(); this.onended && this.onended(); } };
+  if (CH[ch]) CH[ch].pause();
+  CH[ch] = h;
+  if (!vGain) { vGain = ctx.createGain(); vGain.gain.value = 1; vGain.connect(ctx.destination); }
+  loadVoice(name).then(buf => {
+    if (h.stopped) return h.finish();
+    const src = ctx.createBufferSource(); src.buffer = buf; src.connect(vGain);
+    src.onended = () => h.finish(); h.src = src; speaking++; duck(); src.start();
+  }).catch(() => { h.done = true; h.onerror && h.onerror(); });
+  return h;
+}
+function duck() { if (music) music.volume = (music.baseVol || 0.4) * (speaking > 0 ? 0.45 : 1); }
+const say = (name, ch = 'intro') => new Promise(r => { const a = curAudio = voice(name, ch); a.onended = r; a.onerror = r; });
+function talk(name) { talkAudio = voice(name, 'talk'); }
+async function type(el, text, ms) {
+  el.innerHTML = '<span></span><span style="visibility:hidden"></span>';
+  const [shown, rest] = el.children;
+  for (let i = 0; i <= text.length; i++) { if (skipped) return; shown.textContent = text.slice(0, i); rest.textContent = text.slice(i); await wait(ms); }
+}
 function tone(f, d, type = 'square', v = 0.08, slide = 0) {
   const o = ctx.createOscillator(), gn = ctx.createGain(), t = ctx.currentTime;
   o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + d);
@@ -79,7 +103,7 @@ function bang() {
 
 // ---------- intro ----------
 $('start').onclick = async () => {
-  ctx = new AudioContext();
+  ctx = new AudioContext(); preloadVoices();
   $('start').style.display = 'none';
   $('skip').style.display = 'block';
   playMusic('title', 0.3);
@@ -157,7 +181,7 @@ let music = null;
 function playMusic(name, vol = 0.45) {
   if (music) music.pause();
   if (!name) { music = null; return; }
-  music = new Audio(`music/${name}.mp3`); music.loop = true; music.volume = vol; music.play().catch(() => {});
+  music = new Audio(`music/${name}.mp3`); music.loop = true; music.baseVol = vol; music.volume = vol; duck(); music.play().catch(() => {});
 }
 const BARKS = ['I voted for this!', 'Thank you for the free healthcare!', "I'd rather be shot than pay for healthcare!", 'At least there was no co-pay!', 'Finally! Off the waitlist!', 'Sorry... sorry for the trouble, eh.', 'Tell my oncologist I said hi. If I ever get one.', 'Was that... covered?'];
 const CLEARS = ["Hey, buddy, I'm fine!", "Do you mind? I'm walking here.", 'Is that thing even approved?', 'Ew, did you just scan me?'];
@@ -184,7 +208,7 @@ async function startGame() {
 async function brief() {
   S = { m: MISSIONS[MI], t0: performance.now() };
   mode = 'brief';
-  const a = voice(S.m.brief); talkAudio = a;
+  const a = voice(S.m.brief, 'talk'); talkAudio = a;
   playMusic('title', 0.15);
   await anyPress();
   a.pause(); play();
@@ -222,20 +246,20 @@ function play() {
 async function endMission(win, why) {
   mode = 'result'; playMusic('title', 0.2);
   S.win = win; S.why = why;
-  const say2 = n => new Promise(r => { const a = voice(n); a.onended = r; a.onerror = r; });
-  if (why === 'wrong') { await say2('ann-malpractice'); await say2('min-wrong'); }
-  else if (why === 'escaped') { await say2('ann-escaped'); await say2(S.bossOut ? 'min-escape-boss' : 'min-escaped'); }
-  else if (why === 'scandal') { await say2('ann-scandal'); await say2('min-scandal'); }
+  const say2 = (n, ch) => new Promise(r => { const a = voice(n, ch); a.onended = r; a.onerror = r; });
+  if (why === 'wrong') { await say2('ann-malpractice'); await say2('min-wrong', 'talk'); }
+  else if (why === 'escaped') { await say2('ann-escaped'); await say2(S.bossOut ? 'min-escape-boss' : 'min-escaped', 'talk'); }
+  else if (why === 'scandal') { await say2('ann-scandal'); await say2('min-scandal', 'talk'); }
   else {
     await new Promise(r => { const a = voice(win ? 'ann-quota' : 'ann-time'); a.onended = r; a.onerror = r; });
-    if (!win) voice('min-fail');
+    if (!win) voice('min-fail', 'talk');
   }
   await anyPress();
   if (!win) { brief(); return; }
   TOT.closed += S.closed; TOT.saved += S.saved; TOT.referred += S.referred;
   if (++MI < MISSIONS.length) { brief(); return; }
   mode = 'end'; S = { t0: performance.now(), stage: 0 };
-  const say3 = n => new Promise(r => { const a = voice(n); a.onended = r; a.onerror = r; });
+  const say3 = n => new Promise(r => { const a = voice(n, 'talk'); a.onended = r; a.onerror = r; });
   playMusic('title', 0.18);
   await wait(2500);
   S.stage = 1; S.t1 = performance.now();                // her scanner beeps, pointed at her
@@ -254,9 +278,10 @@ function target(pred, range) {
   const P = S.p; let best = null, bd = 1e9;
   for (const p of S.people) {
     if (!pred(p)) continue;
-    const dx = (p.x - P.x) * P.dir;
-    if (dx < 10 || dx > range || Math.abs(p.y - P.y) > 34) continue;
-    if (dx < bd) { bd = dx; best = p; }
+    const dx = (p.x - P.x) * P.dir, dy = Math.abs(p.y - P.y);
+    if (dx < -10 || dx > range || dy > 58) continue;
+    const score = Math.max(dx, 0) + dy * 4;
+    if (score < bd) { bd = score; best = p; }
   }
   return best;
 }
@@ -314,7 +339,6 @@ function detect(q) {
   const i = Math.random() * FLEES.length | 0;
   if (q.boss) q.bubble = { text: 'I have private insurance! Get the car!', t: 3 };
   else { q.bubble = { text: q.door ? 'To the bus! To Seattle!' : FLEES[i], t: 2.6 }; talk(`flee-${i + 1}`); }
-  if (S.clock - S.lastDet > 4) { S.lastDet = S.clock; setTimeout(() => voice('ann-detected'), 1400); }
 }
 function update(dt) {
   if (S.m.chase) return updateChase(dt);
@@ -480,7 +504,7 @@ function chaseFire() {
   const V = S.van, gx = V.x + vlen('bike') - 40, gy = V.y - 95;
   bang(); S.flash = 0.06;
   // the first vehicle ahead in the van's lane takes the bullet
-  const hit = [S.limo, S.suv, ...S.cars].filter(c => Math.abs(c.y - V.y) < 30 && c.x > V.x + vlen('bike') - 60 && c.x < V.x + 1300).sort((a, b) => a.x - b.x)[0];
+  const hit = [S.limo, S.suv, ...S.cars].filter(c => Math.abs(c.y - V.y) < 40 && c.x > V.x + vlen('bike') - 60 && c.x < V.x + 1300).sort((a, b) => a.x - b.x)[0];
   S.tracer = { x0: gx, y0: gy, x1: hit ? hit.x + 40 : gx + 900, y1: hit ? hit.y - 50 : gy, t: 0.07 };
   if (!hit) return;
   if (hit !== S.limo) { float(hit.kind === 'suv' ? 'SECURITY DETAIL!' : 'CIVILIAN VEHICLE!', hit.x + 100, hit.y - 150, '#ff4a5a'); endMission(false, 'wrong'); return; }
@@ -709,6 +733,13 @@ function drawPlay() {
     if (e.scanned && !e.sick) { g.strokeStyle = '#3f6'; g.lineWidth = 4; g.beginPath(); g.moveTo(e.x - 8, top - 6); g.lineTo(e.x - 2, top); g.lineTo(e.x + 9, top - 14); g.stroke(); }
     if (e.state === 'referred') { g.fillStyle = '#000'; g.fillRect(e.x - 34, top - 26, 68, 22); g.fillStyle = '#fff'; g.fillRect(e.x - 32, top - 24, 64, 18); g.fillStyle = '#000'; g.font = font(9); g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('14 MO', e.x, top - 14); }
   }
+  const aim = target(alive, 360);
+  if (aim && P.gunT <= 0) {                     // the lock-on: whoever a shot would hit right now
+    const fr = personFrame(aim), w = fr[2] / 2 + 10, top = aim.y - fr[5] - 8, bot = aim.y + 6, c = aim.detected ? '#ff2a3a' : aim.scanned ? '#3f6' : '#fff';
+    g.strokeStyle = c; g.lineWidth = 3; g.globalAlpha = 0.85;
+    for (const [sx, sy] of [[-1, top], [1, top], [-1, bot], [1, bot]]) { const x = aim.x + sx * w, d = sy === top ? 14 : -14; g.beginPath(); g.moveTo(x - sx * 14, sy); g.lineTo(x, sy); g.lineTo(x, sy + d); g.stroke(); }
+    g.globalAlpha = 1;
+  }
   const q = S.scanT;
   if (q) {
     const hx = P.x + P.dir * 52, hy = P.y - 92, red = q.sick && q.scan > 0.6;
@@ -785,7 +816,8 @@ function drawBrief() {
   g.font = font(10); g.fillStyle = '#ffd23a'; g.fillText(`CASES HIDING HERE: ${m.sick}   TIME: ${m.time}s   SHOOT ONLY THE SICK`, 24, 33);
   box(340, 168);
   g.font = font(11); g.fillStyle = '#fff';
-  wrapLines(m.text.slice(0, n), VW - 260).forEach((l, i) => g.fillText(l, 124, 358 + i * 21));
+  let left = n;
+  wrapLines(m.text, VW - 260).forEach((l, i) => { if (left > 0) g.fillText(l.slice(0, left), 124, 358 + i * 21); left -= l.length + 1; });
   if (blinkSlow()) { g.fillStyle = '#ff2a3a'; g.font = font(10); g.textAlign = 'right'; g.fillText('PRESS START', VW - 120, 484); }
 }
 function drawResult() {
@@ -823,7 +855,7 @@ function drawEnd() {
       if (n > 0) {
         g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(20, 110, 330, 132); g.strokeStyle = '#ffd23a'; g.lineWidth = 3; g.strokeRect(20, 110, 330, 132);
         g.font = font(12); g.fillStyle = '#fff'; g.textAlign = 'left'; g.textBaseline = 'top';
-        wrapLines(FINAL.slice(0, n), 290).forEach((l, i) => g.fillText(l, 38, 126 + i * 22));
+        let left = n; wrapLines(FINAL, 290).forEach((l, i) => { if (left > 0) g.fillText(l.slice(0, left), 38, 126 + i * 22); left -= l.length + 1; });
       }
     }
     return;
