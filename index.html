@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Canadian Healthcare</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
@@ -26,9 +26,17 @@
   #start p { font-size: clamp(10px, 2.2vmin, 20px); animation: blink 1s steps(1) infinite; color: var(--gold); text-shadow: 3px 3px 0 #000; margin: 0; }
   #game { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; display: none; }
   #skip { position: absolute; top: 3%; right: 3%; font: inherit; font-size: clamp(8px, 1.4vmin, 13px); background: #000; color: #fff; border: 2px solid #fff; padding: .6em .8em; display: none; cursor: pointer; z-index: 5; }
-  #pad { position: absolute; left: 0; right: 0; bottom: 0; display: none; justify-content: space-between; padding: 1.5%; pointer-events: none; z-index: 4; }
-  #pad div { display: flex; gap: 6px; align-items: flex-end; }
-  #pad button { pointer-events: auto; font: inherit; font-size: 9px; width: 4.4em; height: 4.4em; background: rgba(0,0,0,.55); color: #fff; border: 2px solid var(--gold); border-radius: 8px; touch-action: none; user-select: none; -webkit-user-select: none; }
+  body { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  #pad { position: fixed; inset: 0; display: none; pointer-events: none; z-index: 7; }
+  #stickzone { position: absolute; left: 0; top: 25%; bottom: 0; width: 45%; pointer-events: auto; touch-action: none; }
+  #stick { position: absolute; left: 4vmin; bottom: 4vmin; width: 30vmin; height: 30vmin; border-radius: 50%; border: 3px solid rgba(255,210,58,.7); background: rgba(0,0,0,.3); }
+  #knob { position: absolute; left: 50%; top: 50%; width: 13vmin; height: 13vmin; margin: -6.5vmin; border-radius: 50%; background: rgba(255,210,58,.55); }
+  #pad button { position: absolute; pointer-events: auto; font: inherit; font-size: 3vmin; width: 19vmin; height: 19vmin; border-radius: 50%; color: #fff; border: 3px solid #fff; touch-action: none; }
+  #pad button.on { filter: brightness(1.8); transform: scale(.94); }
+  #scanbtn { right: 25vmin; bottom: 5vmin; background: rgba(40,170,255,.5); }
+  #firebtn { right: 4vmin; bottom: 18vmin; background: rgba(255,42,58,.6); }
+  #rotate { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; text-align: center; padding: 10%; background: #000; color: var(--gold); font-size: 16px; line-height: 2; z-index: 9; }
+  @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
   #screen::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 6; background: repeating-linear-gradient(transparent 0 2px, rgba(0,0,0,.09) 2px 4px); box-shadow: inset 0 0 10vmin rgba(0,0,0,.6); }
 </style>
 <div id="screen">
@@ -39,11 +47,12 @@
   <div id="coin"><span>INSERT COIN</span><small>PRESS START</small></div>
   <div id="start"><p>PRESS START</p><small id="tagline">Game is loosely based on a very real single payer health care system</small></div>
   <button id="skip">SKIP INTRO</button>
-  <div id="pad">
-    <div><button data-k="L">&#9664;</button><div style="flex-direction:column"><button data-k="U">&#9650;</button><button data-k="D">&#9660;</button></div><button data-k="R">&#9654;</button></div>
-    <div><button data-k="SCAN">SCAN</button><button data-k="FIRE">FIRE</button></div>
-  </div>
 </div>
+<div id="pad">
+  <div id="stickzone"><div id="stick"><div id="knob"></div></div></div>
+  <button id="scanbtn" data-k="SCAN">SCAN</button><button id="firebtn" data-k="FIRE">FIRE</button>
+</div>
+<div id="rotate">TURN YOUR PHONE SIDEWAYS</div>
 <script>
 const LINES = [
   'In a nation of FREE healthcare... the waitlist is ENDLESS!',
@@ -111,7 +120,11 @@ const sfx = name => { const a = new Audio(`sfx/${name}.mp3`); a.volume = 0.9; a.
 addEventListener('load', () => { playMusic('intro', 0.45); if (music) music.play().catch(() => { music = null; }); });
 // any key or a click on the title starts the game
 addEventListener('keydown', e => { if (!ctx && $('start').style.display !== 'none') { e.preventDefault(); startPressed(); } }, true);
-$('start').onclick = () => startPressed();
+$('start').onclick = () => {
+  if (touchUI && document.fullscreenEnabled && !document.fullscreenElement)
+    document.documentElement.requestFullscreen().then(() => screen.orientation?.lock?.('landscape')).catch(() => {});
+  startPressed();
+};
 async function startPressed() {
   if (ctx) return;
   ctx = new AudioContext(); preloadVoices();
@@ -156,10 +169,33 @@ addEventListener('keydown', e => { const k = KEYMAP[e.key]; if (k) { keyDown(k);
 addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
 const anyPress = () => new Promise(r => setTimeout(() => { pressed = r; }, 400));
 $('screen').addEventListener('pointerdown', press);
+let touchUI = matchMedia('(pointer: coarse)').matches;
+addEventListener('pointerdown', e => { if (e.pointerType === 'touch') touchUI = true; }, true);
 document.querySelectorAll('#pad button').forEach(b => {
-  b.addEventListener('pointerdown', e => { e.preventDefault(); keyDown(b.dataset.k); });
-  for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(ev, () => { keys[b.dataset.k] = false; });
+  b.addEventListener('pointerdown', e => { e.preventDefault(); b.setPointerCapture(e.pointerId); b.classList.add('on'); keyDown(b.dataset.k); press(); });
+  for (const ev of ['pointerup', 'pointercancel']) b.addEventListener(ev, () => { b.classList.remove('on'); keys[b.dataset.k] = false; });
 });
+{                                                 // the stick sits where the thumb lands and steers in eight directions
+  const zone = $('stickzone'), base = $('stick'), knob = $('knob'); let id = null, cx = 0, cy = 0;
+  const steer = (dx, dy) => {
+    const r = base.offsetWidth / 2, d = Math.hypot(dx, dy), k = d > r ? r / d : 1;
+    knob.style.transform = `translate(${dx * k}px, ${dy * k}px)`;
+    const dead = r * 0.25;
+    keys.L = dx < -dead; keys.R = dx > dead; keys.U = dy < -dead; keys.D = dy > dead;
+  };
+  zone.addEventListener('pointerdown', e => {
+    if (id !== null) return; id = e.pointerId; zone.setPointerCapture(id); press();
+    const zr = zone.getBoundingClientRect(), r = base.offsetWidth / 2;
+    cx = e.clientX; cy = e.clientY;
+    base.style.left = (cx - zr.left - r) + 'px'; base.style.top = (cy - zr.top - r) + 'px'; base.style.bottom = 'auto';
+    steer(0, 0);
+  });
+  zone.addEventListener('pointermove', e => { if (e.pointerId === id) steer(e.clientX - cx, e.clientY - cy); });
+  for (const ev of ['pointerup', 'pointercancel']) zone.addEventListener(ev, e => {
+    if (e.pointerId !== id) return; id = null; steer(0, 0);
+    base.style.left = ''; base.style.top = ''; base.style.bottom = '';
+  });
+}
 
 // ---------- game data ----------
 const VW = 960, VH = 540;
@@ -232,7 +268,6 @@ async function startGame(level = 0) {
   skipped = true;
   for (const id of ['start', 'still', 'cap', 'card', 'coin', 'skip']) $(id).style.display = 'none';
   cv.style.display = 'block';
-  if (matchMedia('(pointer: coarse)').matches) $('pad').style.display = 'flex';
   if (!A) { A = await (await fetch('art/atlas.json')).json(); await document.fonts.load(font(8)); }
   MI = level; TOT.closed = TOT.saved = TOT.referred = 0; LEAVES = 3;
   if (mode === 'off') requestAnimationFrame(loop);
@@ -681,7 +716,7 @@ function drawChase() {
   for (let i = 0; i < BIKEHP; i++) { g.fillStyle = i < V.hp ? '#3fd6ff' : '#333'; g.fillRect(VW - 16 - (6 - i) * 22, 30, 18, 12); }
   if (S.clock < 7) {
     g.textAlign = 'center'; g.font = font(10); g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(90, VH - 44, 780, 30);
-    g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.fillText('ARROWS STEER   F FIRE   DODGE TRAFFIC AND THROWN JUNK', VW / 2, VH - 28);
+    g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.fillText(touchUI ? 'STICK STEERS   FIRE SHOOTS   DODGE TRAFFIC AND JUNK' : 'ARROWS STEER   F FIRE   DODGE TRAFFIC AND THROWN JUNK', VW / 2, VH - 28);
   }
 }
 
@@ -943,7 +978,7 @@ function drawPlay() {
   g.fillStyle = '#1abc9c'; g.fillRect(P.x / WORLD * VW - 3, ry - 3, 6, 16);
   if (MI === 0 && S.clock < 12) {
     g.textAlign = 'center'; g.font = font(10); g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(150, VH - 60, 660, 30);
-    g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.fillText('ARROWS MOVE  SPACE SCAN  F FIRE  CLOCK +10s  POUTINE +1 LEAF', VW / 2, VH - 44);
+    g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.fillText(touchUI ? 'STICK MOVES  HOLD SCAN  FIRE  CLOCK +10s  POUTINE +1 LEAF' : 'ARROWS MOVE  SPACE SCAN  F FIRE  CLOCK +10s  POUTINE +1 LEAF', VW / 2, VH - 44);
   }
 }
 function cover(im, alpha = 1) {
@@ -1034,6 +1069,9 @@ let last = 0;
 function loop(t) {
   const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
   g.setTransform(1, 0, 0, 1, 0, 0);
+  const pad = touchUI && mode === 'play' ? 'block' : 'none';
+  if ($('pad').style.display !== pad) { $('pad').style.display = pad; for (const k of ['L', 'R', 'U', 'D', 'SCAN', 'FIRE']) keys[k] = false; }
+  if (pad === 'block') $('scanbtn').style.display = S.m.chase ? 'none' : '';
   if (mode === 'play') update(dt);
   if (mode === 'brief') drawBrief();
   else if (mode === 'play') drawPlay();
