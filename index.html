@@ -105,6 +105,7 @@ function bang() {
 }
 
 // ---------- intro ----------
+const JUMP = +((location.search.match(/level=(\d+)/) || location.hash.match(/level-?(\d+)/) || [])[1] || 0);
 const sfx = name => { const a = new Audio(`sfx/${name}.mp3`); a.volume = 0.9; a.play().catch(() => {}); return a; };
 // the title tries its music at once; browsers that block sound before a click start it on PRESS START instead
 addEventListener('load', () => { playMusic('intro', 0.45); if (music) music.play().catch(() => { music = null; }); });
@@ -117,6 +118,7 @@ $('start').onclick = async () => {
   await wait(1700);
   $('start').style.display = 'none';
   $('skip').style.display = 'block';
+  if (JUMP) { playMusic(null); startGame(clamp(JUMP, 1, MISSIONS.length) - 1); return; }
   if (!music || music.paused) playMusic('intro', 0.45);
   const still = $('still'), cap = $('cap');
   cap.style.display = 'block';
@@ -222,13 +224,13 @@ let LEAVES = 3; const MAXLEAVES = 5;
 const LEAF = img('art/leaf.png'), POUTINE = img('art/poutine.png');
 
 // ---------- mission flow ----------
-async function startGame() {
+async function startGame(level = 0) {
   skipped = true;
   for (const id of ['start', 'still', 'cap', 'card', 'coin', 'skip']) $(id).style.display = 'none';
   cv.style.display = 'block';
   if (matchMedia('(pointer: coarse)').matches) $('pad').style.display = 'flex';
   if (!A) { A = await (await fetch('art/atlas.json')).json(); await document.fonts.load(font(8)); }
-  MI = 0; TOT.closed = TOT.saved = TOT.referred = 0; LEAVES = 3;
+  MI = level; TOT.closed = TOT.saved = TOT.referred = 0; LEAVES = 3;
   if (mode === 'off') requestAnimationFrame(loop);
   brief();
 }
