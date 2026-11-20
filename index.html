@@ -219,7 +219,7 @@ function mkPerson(x, c) {
 function play() {
   const m = MISSIONS[MI];
   MAP = MAPS[m.map]; WORLD = PW * MAP.order.length; TOP = MAP.top; BOT = MAP.bot;
-  S = { m, t: m.time, found: 0, closed: 0, saved: 0, referred: 0, refs: 1, p: { x: MAP.hockey ? WORLD / 2 - 500 : 400, y: (TOP + BOT) / 2, dir: 1, walk: 0, gunT: 0 }, people: [], picks: [], floats: [], tracer: null, pickT: 8, scanT: null, flash: 0, fireCd: 0, hum: 0, clock: 0, lastDet: -9, score: [0, 0], hurry: false };
+  S = { m, t: m.time, found: 0, closed: 0, saved: 0, referred: 0, refs: 1, p: { x: MAP.hockey ? WORLD / 2 - 500 : 400, y: (TOP + BOT) / 2, dir: 1, walk: 0, gunT: 0 }, people: [], picks: [], floats: [], tracer: null, bullets: [], verdicts: [], sparks: [], muzzle: null, pickT: 8, scanT: null, flash: 0, fireCd: 0, hum: 0, clock: 0, lastDet: -9, score: [0, 0], hurry: false };
   if (m.chase) { setupChase(); mode = 'play'; voice('ann-chase'); playMusic('chase', 0.45); return; }
   if (MAP.hockey) setupHockey();
   else {
@@ -285,37 +285,72 @@ function target(pred, range) {
   return best;
 }
 const float = (text, x, y, color = '#fff') => S.floats.push({ text, x, y, color, t: 0 });
+function seenByCamera(o) {
+  const cam = S.crew && alive(S.crew) ? S.crew : null;
+  return cam && (o.x - cam.x) * cam.dir > 0 && Math.abs(o.x - cam.x) < 460 && Math.abs(o.y - cam.y) < 60 + Math.abs(o.x - cam.x) * 0.15;
+}
 function fire() {
   if (S.fireCd > 0) return;
   S.fireCd = 0.4;
   const P = S.p;
   P.gunT = 0.35;
-  bang(); S.flash = 0.06;
-  const q = target(alive, 360);
-  const cam = S.crew && alive(S.crew) ? S.crew : null;
-  const seen = o => cam && (o.x - cam.x) * cam.dir > 0 && Math.abs(o.x - cam.x) < 460 && Math.abs(o.y - cam.y) < 60 + Math.abs(o.x - cam.x) * 0.15;
-  if (cam && (seen(P) || (q && seen(q)))) {
-    S.tracer = { x0: P.x + P.dir * 70, y0: P.y - 92, x1: q ? q.x : P.x + P.dir * 480, y1: q ? q.y - 80 : P.y - 92, t: 0.07 };
-    if (q) { q.state = 'dead'; q.dt = 0; }
-    float('ON LIVE TV!', P.x, P.y - 160, '#ff4a5a'); endMission(false, 'scandal'); return;
-  }
-  S.tracer = { x0: P.x + P.dir * 70, y0: P.y - 92, x1: q ? q.x : P.x + P.dir * 480, y1: q ? q.y - 80 : P.y - 92, t: 0.07 };
-  if (!q) return;
+  bang(); S.flash = 0.05;
+  S.muzzle = { x: P.x + P.dir * 70, y: P.y - 92, t: 0.08 };
+  if (seenByCamera(P)) { float('ON LIVE TV!', P.x, P.y - 160, '#ff4a5a'); endMission(false, 'scandal'); return; }
+  // the round starts just past her and travels along her line of fire
+  S.bullets.push({ x: P.x + P.dir * 20, y: P.y - 92, depth: P.y, dir: P.dir, d: 0 });
+}
+function bulletHits(q, b) {
+  S.sparks.push({ x: q.x - b.dir * 10, y: b.y + (q.y - b.depth), t: 0.3 });
+  tone(140, 0.12, 'square', 0.15);
   if (q.boss) { float('BLOCKED BY SECURITY!', q.x, q.y - 160, '#ffd23a'); tone(300, 0.1); return; }
-  q.state = 'dead'; q.dt = 0;
-  if (!q.sick) {
-    q.bubble = null;
-    float('HEALTHY TAXPAYER!', q.x, q.y - 160, '#ff4a5a');
-    endMission(false, 'wrong');
-    return;
-  }
+  q.state = 'dead'; q.dt = 0; q.flashT = 0.18; q.fall = b.dir; q.bubble = null;
+  if (seenByCamera(q)) { float('ON LIVE TV!', q.x, q.y - 160, '#ff4a5a'); endMission(false, 'scandal'); return; }
+  if (q.sick) { const k = Math.random() * BARKS.length | 0; q.bubble = { text: BARKS[k], t: 3.2 }; setTimeout(() => talk(`bark-${k + 1}`), 300); }
+  S.verdicts.push({ q, t: 1.1 });
+}
+function verdict(q) {
+  if (!q.sick) { float('HEALTHY TAXPAYER!', q.x, q.y - 160, '#ff4a5a'); tone(220, 0.5, 'sawtooth', 0.12); S.wrongT = 0.9; return; }
   S.closed++; S.found += q.detected ? 0 : 1;
   const amt = Math.round(40 + Math.random() * 80) * 1000; S.saved += amt;
   float('FILE CLOSED', q.x, q.y - 172, '#ffd23a');
   float('+' + money(amt) + ' SAVED', q.x, q.y - 150, '#7aff9a');
-  const b = Math.random() * BARKS.length | 0;
-  q.bubble = { text: BARKS[b], t: 3.2 };
-  setTimeout(() => talk(`bark-${b + 1}`), 250);
+  tone(660, 0.1, 'triangle'); setTimeout(() => tone(990, 0.15, 'triangle'), 100);
+}
+function updateShots(dt) {
+  for (const b of S.bullets) {
+    const step = 1400 * dt, x0 = b.x;
+    b.x += b.dir * step; b.d += step;
+    let hit = null, best = 1e9;
+    for (const p of S.people) {
+      if (!alive(p)) continue;
+      const t = (p.x - x0) * b.dir;
+      if (t < 0 || t > step || Math.abs(p.y - b.depth) > 36) continue;
+      if (t < best) { best = t; hit = p; }
+    }
+    if (hit) { b.done = true; bulletHits(hit, b); }
+    else if (b.d > 700) b.done = true;
+  }
+  S.bullets = S.bullets.filter(b => !b.done);
+  for (const v of S.verdicts) if ((v.t -= dt) <= 0) { v.done = true; verdict(v.q); }
+  S.verdicts = S.verdicts.filter(v => !v.done);
+  for (const k of S.sparks) k.t -= dt;
+  S.sparks = S.sparks.filter(k => k.t > 0);
+  if (S.muzzle && (S.muzzle.t -= dt) <= 0) S.muzzle = null;
+  if (S.wrongT !== undefined && (S.wrongT -= dt) <= 0) { S.wrongT = undefined; endMission(false, 'wrong'); return true; }
+}
+function drawShots(cam) {
+  if (S.muzzle) { const m = S.muzzle; g.fillStyle = '#fff6b0'; g.beginPath(); g.arc(m.x - cam, m.y, 14, 0, 7); g.fill(); g.fillStyle = '#ff9a2a'; g.beginPath(); g.arc(m.x - cam, m.y, 8, 0, 7); g.fill(); }
+  for (const b of S.bullets) {
+    const x = b.x - cam, back = -(b.dir || 1) * 46;
+    g.strokeStyle = 'rgba(255,200,80,.5)'; g.lineWidth = 6; g.beginPath(); g.moveTo(x + back, b.y); g.lineTo(x, b.y); g.stroke();
+    g.strokeStyle = '#fffbe0'; g.lineWidth = 3; g.beginPath(); g.moveTo(x + back * 0.5, b.y); g.lineTo(x, b.y); g.stroke();
+  }
+  for (const k of S.sparks) {
+    const r = (0.3 - k.t) * 160;
+    g.strokeStyle = `rgba(255,230,140,${k.t / 0.3})`; g.lineWidth = 3;
+    for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; g.beginPath(); g.moveTo(k.x - cam + Math.cos(a) * r * 0.4, k.y + Math.sin(a) * r * 0.4); g.lineTo(k.x - cam + Math.cos(a) * r, k.y + Math.sin(a) * r); g.stroke(); }
+  }
 }
 function refer() {
   const P = S.p, q = target(p => p.state === 'run' && p.detected, 140);
@@ -341,6 +376,7 @@ function detect(q) {
 }
 function update(dt) {
   if (S.m.chase) return updateChase(dt);
+  if (updateShots(dt)) return;
   const P = S.p;
   S.t -= dt; S.clock += dt; S.fireCd -= dt; P.gunT -= dt; S.flash -= dt;
   if (S.tracer && (S.tracer.t -= dt) <= 0) S.tracer = null;
@@ -367,7 +403,7 @@ function update(dt) {
     }
   }
   for (const p of S.people) {
-    p.t += dt;
+    p.t += dt; if (p.flashT) p.flashT -= dt;
     if (p.bubble && (p.bubble.t -= dt) <= 0) p.bubble = null;
     if (p.state === 'dead') { p.dt += dt; continue; }
     if (S.scanT === p || p.state === 'bench') continue;
@@ -423,7 +459,7 @@ function setupChase() {
   S.van = { x: 0, lane: 2, y: LANES()[2], v: 620, hit: 0 };
   S.limo = { kind: 'limo', x: 900, lane: 1, y: LANES()[1], v: 640, hp: 6, flash: 0, slow: 0, next: 2, spin: 0 };
   S.suv = { kind: 'suv', x: 560, lane: 2, y: LANES()[2], v: 640 };
-  S.cars = []; S.spawn = 0.5; S.taunt = 4; S.shake = 0; S.over = false; S.junk = []; S.throwT = 3;
+  S.cars = []; S.spawn = 0.5; S.taunt = 4; S.shake = 0; S.over = false; S.junk = []; S.throwT = 3; S.bullets = []; S.verdicts = []; S.sparks = []; S.muzzle = null;
   S.p = { x: 0, y: 0, dir: 1, walk: 0, gunT: 0 };
 }
 function laneBlocked(lane, x, len) { return S.cars.some(c => c.lane === lane && c.x > x - 60 && c.x < x + len + 120); }
@@ -431,6 +467,7 @@ function updateChase(dt) {
   const V = S.van, L = S.limo, lanes = LANES();
   S.t -= dt; S.clock += dt; S.fireCd -= dt; S.flash -= dt; S.shake = Math.max(0, S.shake - dt);
   if (S.tracer && (S.tracer.t -= dt) <= 0) S.tracer = null;
+  if (updateChaseShots(dt)) return;
   if (S.over) { L.spin += dt; L.v = Math.max(0, L.v - 900 * dt); L.x += L.v * dt; V.v = Math.max(0, V.v - 500 * dt); V.x += V.v * dt; for (const f of S.floats) f.t += dt; return; }
   // the van: up/down change lane, left/right brake and boost
   if (!S.laneCd || S.laneCd < S.clock) {
@@ -501,12 +538,17 @@ function chaseFire() {
   if (S.fireCd > 0 || S.over) return;
   S.fireCd = 0.35;
   const V = S.van, gx = V.x + vlen('bike') - 40, gy = V.y - 95;
-  bang(); S.flash = 0.06;
-  // the first vehicle ahead in the van's lane takes the bullet
-  const hit = [S.limo, S.suv, ...S.cars].filter(c => Math.abs(c.y - V.y) < 40 && c.x > V.x + vlen('bike') - 60 && c.x < V.x + 1300).sort((a, b) => a.x - b.x)[0];
-  S.tracer = { x0: gx, y0: gy, x1: hit ? hit.x + 40 : gx + 900, y1: hit ? hit.y - 50 : gy, t: 0.07 };
-  if (!hit) return;
-  if (hit !== S.limo) { float(hit.kind === 'suv' ? 'SECURITY DETAIL!' : 'CIVILIAN VEHICLE!', hit.x + 100, hit.y - 150, '#ff4a5a'); endMission(false, 'wrong'); return; }
+  bang(); S.flash = 0.05;
+  S.muzzle = { x: gx, y: gy, t: 0.08 };
+  S.bullets.push({ x: gx, y: gy, depth: V.y, dir: 1, d: 0 });
+}
+function chaseHit(c, b) {
+  S.sparks.push({ x: b.x, y: b.y + (c.y - b.depth) * 0.5, t: 0.3 });
+  if (c !== S.limo) {
+    c.flash = 0.18; tone(140, 0.12, 'square', 0.15);
+    S.verdicts.push({ t: 0.8, run: () => { float(c.kind === 'suv' ? 'SECURITY DETAIL HIT!' : 'CIVILIAN HIT!', c.x + 100, c.y - 150, '#ff4a5a'); S.wrongT = 0.9; } });
+    return;
+  }
   const L = S.limo; L.hp--; L.flash = 0.15; L.slow = 0.9; tone(1400, 0.05, 'square', 0.12);
   float(L.hp > 0 ? `HIT! ${L.hp} TO GO` : 'TARGET DOWN!', L.x + 200, L.y - 160, '#ffd23a');
   if (L.hp <= 0) {
@@ -515,6 +557,22 @@ function chaseFire() {
     float('+' + money(amt) + ' PENSION SAVED', L.x + 200, L.y - 130, '#7aff9a');
     setTimeout(() => { if (S.over && mode === 'play') endMission(true); }, 6500);
   }
+}
+function updateChaseShots(dt) {
+  const V = S.van;
+  for (const b of S.bullets) {
+    const x0 = b.x; b.x += (V.v + 1600) * dt; b.d += 1600 * dt;
+    const hit = [S.limo, S.suv, ...S.cars].filter(c => Math.abs(c.y - b.depth) < 40 && x0 < c.x + vlen(c.kind) && b.x >= c.x).sort((p, q) => p.x - q.x)[0];
+    if (hit) { b.done = true; chaseHit(hit, b); } else if (b.d > 1300) b.done = true;
+  }
+  S.bullets = S.bullets.filter(b => !b.done);
+  for (const v of S.verdicts) if ((v.t -= dt) <= 0) { v.done = true; v.run(); }
+  S.verdicts = S.verdicts.filter(v => !v.done);
+  for (const k of S.sparks) k.t -= dt;
+  S.sparks = S.sparks.filter(k => k.t > 0);
+  if (S.muzzle && (S.muzzle.t -= dt) <= 0) S.muzzle = null;
+  for (const c of [S.suv, ...S.cars]) if (c.flash) c.flash -= dt;
+  if (S.wrongT !== undefined && (S.wrongT -= dt) <= 0) { S.wrongT = undefined; endMission(false, 'wrong'); return true; }
 }
 function vehicle(kind, x, y, cam, flip) {
   const im = VEH[kind]; if (!im.complete || !im.naturalWidth) return;
@@ -535,18 +593,16 @@ function drawChase() {
       const im = VEH.limo; g.save(); g.translate(L.x - cam + im.width / 2, L.y - im.height / 2); g.rotate(L.spin * 3);
       g.drawImage(im, -im.width / 2, -im.height / 2); g.restore(); continue;
     }
+    if (c.flash > 0) g.filter = 'brightness(2.5)';
     vehicle(c.kind, c.x, c.y + Math.sin(S.clock * 30 + c.x) * 1.2, cam);
+    g.filter = 'none';
     if (c === L && L.flash > 0) { g.fillStyle = 'rgba(255,255,255,.6)'; g.fillRect(L.x - cam, L.y - VEH.limo.height, VEH.limo.width, VEH.limo.height); }
   }
   for (const j of S.junk) {
     const im = VEH['obj-' + j.obj]; if (!im.naturalWidth) continue;
     g.save(); g.translate(j.x - cam, j.y - im.height / 2); if (j.t < j.dur) g.rotate(j.rot); g.drawImage(im, -im.width / 2, -im.height / 2); g.restore();
   }
-  if (S.tracer) {
-    const t = S.tracer;
-    g.strokeStyle = '#fff6b0'; g.lineWidth = 3; g.beginPath(); g.moveTo(t.x0 - cam, t.y0); g.lineTo(t.x1 - cam, t.y1); g.stroke();
-    g.fillStyle = '#ff9a2a'; g.beginPath(); g.arc(t.x0 - cam, t.y0, 12, 0, 7); g.fill();
-  }
+  drawShots(cam);
   g.textAlign = 'center'; g.textBaseline = 'middle';
   for (const f of S.floats) {
     g.globalAlpha = clamp(1.8 - f.t, 0, 1); g.font = font(12);
@@ -721,8 +777,10 @@ function drawPlay() {
     if (e === S.puck) { g.fillStyle = '#111'; g.beginPath(); g.ellipse(e.x, e.y, 9, 4, 0, 0, 7); g.fill(); continue; }
     if (e.state === 'dead') {
       g.globalAlpha = clamp(10 - e.dt, 0, 1);
-      if (e.dt < 0.18) { g.save(); g.translate(e.x, e.y); g.rotate(-e.dir * e.dt * 6); spr(A[e.c].walk[0], 0, 0, e.dir < 0); g.restore(); }
+      if (e.flashT > 0) g.filter = 'brightness(3)';
+      if (e.dt < 0.25) { g.save(); g.translate(e.x, e.y); g.rotate((e.fall || 1) * e.dt * 6); spr(A[e.c].walk[0], 0, 0, e.dir < 0); g.restore(); }
       else spr(A[e.c].dead[0], e.x, e.y, e.dir < 0);
+      g.filter = 'none';
       g.globalAlpha = 1; continue;
     }
     if (e.state === 'run' && e.detected) { g.fillStyle = blink ? 'rgba(255,40,60,.55)' : 'rgba(255,40,60,.25)'; g.beginPath(); g.ellipse(e.x, e.y, 36, 9, 0, 0, 7); g.fill(); }
@@ -740,12 +798,7 @@ function drawPlay() {
     g.fillStyle = '#000'; g.fillRect(q.x - 30, q.y - 166, 60, 10);
     g.fillStyle = red ? '#f33' : '#3f6'; g.fillRect(q.x - 28, q.y - 164, 56 * Math.min(1, q.scan), 6);
   }
-  if (S.tracer) {
-    const t = S.tracer;
-    g.strokeStyle = '#fff6b0'; g.lineWidth = 3; g.beginPath(); g.moveTo(t.x0, t.y0); g.lineTo(t.x1, t.y1); g.stroke();
-    g.fillStyle = '#fff6b0'; g.beginPath(); g.arc(t.x0, t.y0, 14, 0, 7); g.fill();
-    g.fillStyle = '#ff9a2a'; g.beginPath(); g.arc(t.x0, t.y0, 8, 0, 7); g.fill();
-  }
+  drawShots(0);
   g.restore();
   g.textAlign = 'center'; g.textBaseline = 'middle';
   for (const f of S.floats) {
