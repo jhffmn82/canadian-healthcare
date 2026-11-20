@@ -135,10 +135,14 @@ const PANELS = {}; for (const m of Object.values(MAPS)) for (const p of m.panels
 const PW = 1620;
 let MAP = MAPS.street, WORLD = 0, TOP = 0, BOT = 0;
 let A = null;   // atlas frames
+const GEAR = ['c25', 'c26', 'c28', 'c32'];          // helmets and goggles hide symptoms
 const MISSIONS = [
   { map: 'street', name: 'MAIN STREET', sick: 3, time: 90, brief: 'min-1', text: "Welcome to the team, Provider! Somewhere on this street, three citizens have cancer. Scan the crowd. Find them. Close their files. Remember: it's not a cost. It's compassion." },
+  { map: 'street', name: 'RUSH HOUR', sick: 4, time: 80, crowd: 85, pace: 1.35, brief: 'brief-2', text: "Rush hour, Provider! Eighty-five commuters, four cases, and everyone's in a hurry. Just like the surgical waitlist. Oh, wait. That one never moves." },
   { map: 'rink', name: 'HOCKEY NIGHT', sick: 3, time: 75, brief: 'min-2', text: "Bad news, Provider. The budget is short again, so we're going where the people are: the big game! Three players on the ice have cancer. Only the sick ones. A healthy enforcer costs the league a fortune." },
-  { map: 'ski', name: 'APRES SKI', sick: 5, time: 90, brief: 'min-3', text: 'Big day! Parliament is studying expanded eligibility, and the wealthy are hiding at the ski hill. Five cases at the bottom of the slope. Healthy taxpayers fund your pension, Provider. Choose wisely.' },
+  { map: 'rink', name: 'PLAYOFFS', sick: 4, time: 75, lines: 22, brief: 'brief-4', text: "Playoffs! The arena is packed and both coaches are rolling two lines. Four cases between them. Keep track of who you've scanned. Line changes wait for no one. Unlike patients." },
+  { map: 'ski', name: 'APRES SKI', sick: 4, time: 85, gear: true, flee: 215, brief: 'min-3', text: 'Big day! Parliament is studying expanded eligibility, and the wealthy are hiding at the ski hill. Helmets and goggles slow your scanner. Healthy taxpayers fund your pension, Provider. Choose wisely.' },
+  { map: 'ski', name: 'WHITEOUT', sick: 5, time: 85, gear: true, flee: 215, storm: true, brief: 'brief-6', text: 'A whiteout on the mountain, Provider! Your scanner range is cut in half, and five cases are hiding in the snow. Think of it as a blizzard of savings.' },
 ];
 let music = null;
 function playMusic(name, vol = 0.45) {
@@ -186,7 +190,8 @@ function play() {
   if (MAP.hockey) setupHockey();
   else {
     const cast = MAP.cast.filter(c => A[c]);
-    for (let i = 0; i < MAP.crowd; i++) S.people.push(mkPerson(200 + (WORLD - 400) * (i + Math.random()) / MAP.crowd, pick(cast)));
+    const n = m.crowd || MAP.crowd;
+    for (let i = 0; i < n; i++) { const q = mkPerson(200 + (WORLD - 400) * (i + Math.random()) / n, pick(cast)); q.sp *= m.pace || 1; S.people.push(q); }
   }
   const far = S.people.filter(p => Math.abs(p.x - S.p.x) > (MAP.hockey ? 250 : 700) && p.role !== 'R').sort(() => Math.random() - 0.5);
   for (const p of far.slice(0, m.sick)) p.sick = true;
@@ -266,7 +271,7 @@ function refer() {
   tone(660, 0.1); setTimeout(() => tone(990, 0.15), 100);
 }
 function detect(q) {
-  q.detected = true; q.state = 'run'; q.sp = 150 + Math.random() * 30; q.dir = q.x > S.p.x ? 1 : -1; S.found++;
+  q.detected = true; q.state = 'run'; q.sp = (S.m.flee || 150) + Math.random() * 30; q.dir = q.x > S.p.x ? 1 : -1; S.found++;
   tone(880, 0.12); setTimeout(() => tone(440, 0.3), 120);
   float('MALIGNANCY DETECTED', q.x, q.y - 160, '#ff4a5a');
   const i = Math.random() * FLEES.length | 0;
@@ -285,9 +290,9 @@ function update(dt) {
 
   S.scanT = null;
   if (keys.SCAN) {
-    const q = target(p => (p.state === 'walk' || p.state === 'idle') && !p.scanned, 280);
+    const q = target(p => (p.state === 'walk' || p.state === 'idle') && !p.scanned, S.m.storm ? 150 : 280);
     if (q) {
-      S.scanT = q; q.scan += dt / 0.6;
+      S.scanT = q; q.scan += dt / (S.m.gear && GEAR.includes(q.c) ? 1.3 : 0.6);
       S.hum -= dt; if (S.hum <= 0) { S.hum = 0.1; tone(500 + q.scan * 700, 0.07, 'sine', 0.04); }
       if (q.scan >= 1) {
         q.scanned = true;
@@ -303,7 +308,7 @@ function update(dt) {
     p.t += dt;
     if (p.bubble && (p.bubble.t -= dt) <= 0) p.bubble = null;
     if (p.state === 'dead') { p.dt += dt; continue; }
-    if (S.scanT === p) continue;
+    if (S.scanT === p || p.state === 'bench') continue;
     if (p.team !== undefined && p.state === 'walk') continue;
     if (p.state === 'walk' && Math.random() < dt * 0.08) { p.state = 'idle'; p.idle = 1 + Math.random() * 3; }
     if (p.state === 'idle') { if ((p.idle -= dt) <= 0) { p.state = 'walk'; if (Math.random() < 0.4) p.dir *= -1; } continue; }
@@ -328,15 +333,18 @@ function update(dt) {
 
 // ---------- hockey ----------
 function setupHockey() {
-  const mid = WORLD / 2, roster = [
-    ['c18', 0, 'F'], ['c18', 0, 'F'], ['c19', 0, 'D'], ['c19', 0, 'D'], ['c18', 0, 'C'], ['c22', 0, 'G'],
-    ['c20', 1, 'F'], ['c20', 1, 'F'], ['c21', 1, 'D'], ['c21', 1, 'D'], ['c20', 1, 'C'], ['c23', 1, 'G'], ['c24', -1, 'R']];
-  roster.forEach(([c, team, role], i) => {
-    const p = mkPerson(mid + (team === 0 ? -1 : 1) * (120 + (i % 6) * 110), c);
-    Object.assign(p, { team, role, slot: i % 6, sp: 0, vx: 0, vy: 0 });
+  const mid = WORLD / 2, line = [
+    ['c18', 0, 'F'], ['c18', 0, 'F'], ['c19', 0, 'D'], ['c19', 0, 'D'], ['c18', 0, 'C'],
+    ['c20', 1, 'F'], ['c20', 1, 'F'], ['c21', 1, 'D'], ['c21', 1, 'D'], ['c20', 1, 'C']];
+  const roster = [...line.map(r => [...r, 0]), ...(S.m.lines ? line.map(r => [...r, 1]) : []), ['c22', 0, 'G', 0], ['c23', 1, 'G', 0], ['c24', -1, 'R', 0]];
+  roster.forEach(([c, team, role, ln], i) => {
+    const p = mkPerson(mid + (team === 0 ? -1 : 1) * (120 + (i % 5) * 110), c);
+    Object.assign(p, { team, role, line: ln, slot: i % 6, sp: 0, vx: 0, vy: 0 });
     if (role === 'G') p.x = team === 0 ? MAP.goalL + 70 : MAP.goalR - 70;
+    if (ln) p.state = 'bench';
     S.people.push(p);
   });
+  S.lineT = S.m.lines || 0;
   S.puck = { x: mid, y: (TOP + BOT) / 2, vx: 0, vy: 0, owner: null, free: 1.5 };
 }
 const skater = p => p.team !== undefined && p.team >= 0 && p.role !== 'G' && p.state === 'walk';
@@ -352,8 +360,17 @@ function shoot(p, tx) {
   pk.owner = null; pk.vx = (tx - pk.x) / d * 700; pk.vy = (ty - pk.y) / d * 700; pk.free = S.clock + 0.35;
   tone(160, 0.07, 'square', 0.2);
 }
+function lineChange() {
+  for (const p of S.people) {
+    if (p.line === undefined || p.role === 'G' || p.role === 'R') continue;
+    if (p.state === 'walk') { p.state = 'bench'; if (S.puck.owner === p) S.puck.owner = null; }
+    else if (p.state === 'bench') { p.state = 'walk'; p.x = clamp(S.puck.x + (Math.random() - 0.5) * 500, 300, WORLD - 300); p.y = TOP + 4; p.vx = p.vy = 0; p.scanned = false; p.scan = 0; }
+  }
+  float('LINE CHANGE!', S.puck.x, TOP - 40, '#ffd23a'); voice('ann-line'); tone(1800, 0.5, 'square', 0.06);
+}
 function updateHockey(dt) {
   const M = MAP, pk = S.puck;
+  if (S.lineT && (S.lineT -= dt) <= 0) { S.lineT = S.m.lines; lineChange(); }
   if (pk.owner && pk.owner.state !== 'walk') pk.owner = null;
   if (pk.owner) { pk.x = pk.owner.x + pk.owner.dir * 34; pk.y = pk.owner.y - 2; }
   else {
@@ -445,7 +462,7 @@ function drawPlay() {
     g.fillStyle = '#e8c070'; g.fillRect(k.x - 13, y - 10, 26, 20); g.fillRect(k.x - 13, y - 14, 10, 4);
     g.fillStyle = '#c0392b'; g.fillRect(k.x - 2, y - 6, 4, 12); g.fillRect(k.x - 6, y - 2, 12, 4);
   }
-  const ents = [...S.people.filter(p => p.x > cam - 200 && p.x < cam + VW + 200), P, ...(S.puck ? [S.puck] : [])].sort((a, b) => a.y - b.y);
+  const ents = [...S.people.filter(p => p.state !== 'bench' && p.x > cam - 200 && p.x < cam + VW + 200), P, ...(S.puck ? [S.puck] : [])].sort((a, b) => a.y - b.y);
   const blink = Math.floor(performance.now() / 250) % 2;
   for (const e of ents) {
     g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(e.x, e.y, 30, 7, 0, 0, 7); g.fill();
@@ -488,6 +505,13 @@ function drawPlay() {
   }
   g.globalAlpha = 1;
   for (const p of S.people) if (p.bubble && p.x > cam - 100 && p.x < cam + VW + 100) bubble(p.bubble.text, p.x - cam, p.y - 160);
+  if (S.m.storm) {
+    const px = P.x - cam, py = P.y - 70, fog = g.createRadialGradient(px, py, 90, px, py, 360);
+    fog.addColorStop(0, 'rgba(235,240,250,0)'); fog.addColorStop(1, 'rgba(235,240,250,.93)');
+    g.fillStyle = fog; g.fillRect(0, 0, VW, VH);
+    g.fillStyle = 'rgba(255,255,255,.85)';
+    for (let i = 0; i < 160; i++) { const sx = (i * 97.3 + S.clock * (60 + i % 7 * 25)) % VW, sy = (i * 53.7 + S.clock * (140 + i % 5 * 30)) % VH; g.fillRect(sx, sy, 2 + i % 3, 2 + i % 3); }
+  }
   if (S.flash > 0) { g.fillStyle = 'rgba(255,255,220,.35)'; g.fillRect(0, 0, VW, VH); }
   // HUD
   g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(0, 0, VW, 54);
@@ -507,7 +531,7 @@ function drawPlay() {
   g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(cam / WORLD * VW, ry - 2, VW / WORLD * VW, 14);
   for (const p of S.people) {
     if (p.state === 'run') { if (blink) { g.fillStyle = '#ff2a3a'; g.fillRect(p.x / WORLD * VW - 3, ry - 1, 6, 12); } }
-    else if (p.state !== 'dead') { g.fillStyle = p.scanned ? '#3f6' : '#888'; g.fillRect(p.x / WORLD * VW - 1, ry + 3, 2, 4); }
+    else if (p.state !== 'dead' && p.state !== 'bench') { g.fillStyle = p.scanned ? '#3f6' : '#888'; g.fillRect(p.x / WORLD * VW - 1, ry + 3, 2, 4); }
   }
   g.fillStyle = '#1abc9c'; g.fillRect(P.x / WORLD * VW - 3, ry - 3, 6, 16);
   if (MI === 0 && S.clock < 12) {
