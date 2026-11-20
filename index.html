@@ -732,13 +732,6 @@ function drawPlay() {
     if (e.scanned && !e.sick) { g.strokeStyle = '#3f6'; g.lineWidth = 4; g.beginPath(); g.moveTo(e.x - 8, top - 6); g.lineTo(e.x - 2, top); g.lineTo(e.x + 9, top - 14); g.stroke(); }
     if (e.state === 'referred') { g.fillStyle = '#000'; g.fillRect(e.x - 34, top - 26, 68, 22); g.fillStyle = '#fff'; g.fillRect(e.x - 32, top - 24, 64, 18); g.fillStyle = '#000'; g.font = font(9); g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('14 MO', e.x, top - 14); }
   }
-  const aim = target(alive, 360);
-  if (aim && P.gunT <= 0) {                     // the lock-on: whoever a shot would hit right now
-    const fr = personFrame(aim), w = fr[2] / 2 + 10, top = aim.y - fr[5] - 8, bot = aim.y + 6, c = aim.detected ? '#ff2a3a' : aim.scanned ? '#3f6' : '#fff';
-    g.strokeStyle = c; g.lineWidth = 3; g.globalAlpha = 0.85;
-    for (const [sx, sy] of [[-1, top], [1, top], [-1, bot], [1, bot]]) { const x = aim.x + sx * w, d = sy === top ? 14 : -14; g.beginPath(); g.moveTo(x - sx * 14, sy); g.lineTo(x, sy); g.lineTo(x, sy + d); g.stroke(); }
-    g.globalAlpha = 1;
-  }
   const q = S.scanT;
   if (q) {
     const hx = P.x + P.dir * 52, hy = P.y - 92, red = q.sick && q.scan > 0.6;
