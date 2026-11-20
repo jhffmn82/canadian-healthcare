@@ -206,7 +206,7 @@ const MISSIONS = [
   { map: 'depot', name: 'BORDER TOWN', fact: "An estimated 105,529 Canadians left the country for medical treatment in 2025, up 66% in a decade.", src: "Fraser Institute, Leaving Canada for Medical Care 2026", sick: 4, time: 85, buses: [4190], flee: 160, brief: 'b7', text: "We have a leak. Four cases are at the bus depot, and that bus goes to Seattle. If they cross the border, they get treated. Intercept them before they board. That is an order." },
   { map: 'depot2', name: 'LAST BUS', fact: "A new cancer drug takes a median 581 days to be publicly funded in Canada, against 382 days across 20 comparable countries.", src: "Current Oncology, 2024 review", sick: 5, time: 85, buses: [845, 4190], flee: 170, brief: 'b8', text: "Last buses of the night. Two coaches, five cases, and every one of them has heard about American oncologists. Not one of them leaves this platform." },
   { map: 'hill', name: 'QUESTION PERIOD', fact: "16,499 Canadians died by MAID in 2024, about one in twenty deaths. Cancer was the underlying condition in 63.6% of them.", src: "Health Canada, Sixth Annual Report on MAID, 2025", sick: 3, time: 90, press: true, boss: true, brief: 'b9', text: "Parliament Hill. Three cases among the staffers. The press is on site. If their camera sees you work, this ministry has never heard of you. Also, the Minister is due for his annual checkup. Scan him. Discreetly." },
-  { map: 'road', name: 'THE MOTORCADE', fact: "The Parliamentary Budget Officer estimated expanded MAID would cut health-care costs by about $149 million a year.", src: "PBO, Cost Estimate for Bill C-7, 2020", sick: 1, time: 75, chase: true, brief: 'b10', text: "Priority alert. The Minister scanned positive and is fleeing to a private clinic in Seattle. His motorcade is on the highway to the border. Take the bike. Stop that limo. Do not hit civilian vehicles, and dodge whatever his security throws." },
+  { map: 'road', name: 'THE MOTORCADE', fact: "The Parliamentary Budget Officer estimated expanded MAID would cut health-care costs by about $149 million a year.", src: "PBO, Cost Estimate for Bill C-7, 2020", sick: 1, time: 90, chase: true, brief: 'b10', text: "Priority alert. The Minister scanned positive and is fleeing to a private clinic in Seattle. His motorcade is on the highway to the border. Take the bike. Stop that limo. Do not hit civilian vehicles, and dodge whatever his security throws." },
 ];
 let music = null;
 function playMusic(name, vol = 0.45) {
@@ -504,22 +504,22 @@ function update(dt) {
 // ---------- the chase ----------
 // The road scrolls by itself. The bike moves freely: left/right along the screen, up/down across the road.
 // Traffic, the security SUV and whatever its guard throws all hurt; 5 hits and you wipe out (a maple leaf, and a restart).
-const ROAD = { top: 336, bot: 526 }, ROADSPEED = 560, BIKEHP = 5;
+const ROAD = { top: 336, bot: 520 }, ROADSPEED = 520, BIKEHP = 7;
 const vlen = k => VEH[k].naturalWidth || 120;
 function setupChase() {
   S.cam = 0;
   S.van = { x: 220, sx: 220, y: 440, hp: BIKEHP, inv: 0 };
-  S.limo = { kind: 'limo', x: 760, sx: 760, y: 392, ty: 392, hp: 6, flash: 0, slow: 0, next: 2, spin: 0 };
+  S.limo = { kind: 'limo', x: 760, sx: 760, y: 392, ty: 392, hp: 5, flash: 0, slow: 0, next: 2, spin: 0 };
   S.suv = { kind: 'suv', x: 520, sx: 520, y: 470, ty: 470, throwing: 0 };
-  S.cars = []; S.spawn = 1.5; S.taunt = 4; S.shake = 0; S.over = false; S.junk = []; S.throwT = 3.5;
+  S.cars = []; S.spawn = 2.5; S.taunt = 4; S.shake = 0; S.over = false; S.junk = []; S.throwT = 5;
   S.bullets = []; S.verdicts = []; S.sparks = []; S.muzzle = null;
   S.p = { x: 0, y: 0, dir: 1, walk: 0, gunT: 0 };
 }
-const overlaps = (a, b, pad = 0) => a.x + vlen(a.kind || 'bike') - pad > b.x && a.x + pad < b.x + vlen(b.kind) && Math.abs(a.y - b.y) < 22;
+const overlaps = (a, b, pad = 0) => a.x + vlen(a.kind || 'bike') - pad > b.x && a.x + pad < b.x + vlen(b.kind) && Math.abs(a.y - b.y) < 15;   // generous: a near miss is a miss
 function bikeHit(what) {
   const V = S.van;
   if (V.inv > 0 || S.over) return;
-  V.hp--; V.inv = 1.4; S.shake = 0.35;
+  V.hp--; V.inv = 2; S.shake = 0.35;
   tone(90, 0.3, 'sawtooth', 0.2); tone(500, 0.2, 'square', 0.08, 200);
   float(what, V.x + 60, V.y - 110, '#ff9a2a');
   if (V.hp <= 0) { float('WIPED OUT!', V.x + 60, V.y - 140, '#ff4a5a'); S.over = 'crash'; setTimeout(() => { if (mode === 'play') endMission(false, 'crash'); }, 1200); }
@@ -547,25 +547,25 @@ function updateChase(dt) {
   L.sx += ((L.slow > 0 ? 620 : 780 + Math.sin(S.clock * 0.6) * 50) - L.sx) * Math.min(1, dt * 1.2);
   L.x = S.cam + L.sx;
   // the security SUV hangs between you and the limo and drifts toward your line
-  if (Math.random() < dt * 0.5) G.ty = clamp(V.y + (Math.random() - 0.5) * 60, ROAD.top, ROAD.bot);
+  if (Math.random() < dt * 0.25) G.ty = clamp(V.y + (Math.random() - 0.5) * 120, ROAD.top, ROAD.bot);
   G.y += (G.ty - G.y) * Math.min(1, dt * 1.1);
   G.sx += ((L.sx - 250) - G.sx) * Math.min(1, dt);
   G.x = S.cam + G.sx;
   // traffic: slower cars coming back toward you, spaced so there is always a way through
   if ((S.spawn -= dt) <= 0) {
-    S.spawn = 1.3 + Math.random() * 1.1;
+    S.spawn = 2.4 + Math.random() * 1.6;
     const kind = pick(['pickup', 'minivan', 'taxi', 'hatch']), y = ROAD.top + Math.random() * (ROAD.bot - ROAD.top);
-    if (!S.cars.some(c => Math.abs(c.y - y) < 50 && c.x > S.cam + 800)) S.cars.push({ kind, y, x: S.cam + 1000, v: 250 + Math.random() * 100 });
+    if (!S.cars.some(c => Math.abs(c.y - y) < 50 && c.x > S.cam + 800)) S.cars.push({ kind, y, x: S.cam + 1000, v: 360 + Math.random() * 80 });
   }
   for (const c of S.cars) c.x += c.v * dt;
   S.cars = S.cars.filter(c => c.x > S.cam - 400);
-  for (const c of S.cars) if (overlaps(V, c, 14)) bikeHit('CRASH! -1 BIKE');
-  if (overlaps(V, G, 14)) bikeHit('RAMMED! -1 BIKE');
+  for (const c of S.cars) if (overlaps(V, c, 26)) bikeHit('CRASH! -1 BIKE');
+  if (overlaps(V, G, 34)) bikeHit('RAMMED! -1 BIKE');
   // the guard throws something every couple of seconds; a shadow shows where it will land
   if ((S.throwT -= dt) <= 0 && G.sx > V.sx + 100) {
-    S.throwT = 2 + Math.random() * 1.2; G.throwing = 0.45;
-    const dur = 1.25, land = V.sx + 30;              // aimed at where she is now, on screen
-    S.junk.push({ obj: Math.random() * 4 | 0, sx: G.sx + 40, sx1: land, y0: G.y - 80, ty: V.y, t: 0, dur, rot: 0 });
+    S.throwT = 3.5 + Math.random() * 1.5; G.throwing = 0.45;
+    const dur = 1.6, land = V.sx + 30 + (Math.random() - 0.5) * 120;   // thrown near her, not dead on: a still rider gets hit sometimes, not always
+    S.junk.push({ obj: Math.random() * 4 | 0, sx: G.sx + 40, sx1: land, y0: G.y - 80, ty: clamp(V.y + (Math.random() - 0.5) * 70, ROAD.top, ROAD.bot), t: 0, dur, rot: 0 });
     tone(700, 0.08, 'triangle', 0.05, 300);
   }
   G.throwing -= dt;
@@ -574,7 +574,7 @@ function updateChase(dt) {
     const k = Math.min(1, j.t / j.dur);
     j.sxNow = j.t < j.dur ? j.sx + (j.sx1 - j.sx) * k : j.sx1 - (j.t - j.dur) * ROADSPEED;   // once down it lies on the road
     j.x = S.cam + j.sxNow; j.y = j.y0 + (j.ty - j.y0) * k - Math.sin(k * Math.PI) * 110;
-    if (k >= 1 && !j.hit && Math.abs(V.y - j.ty) < 20 && j.x > V.x - 10 && j.x < V.x + vlen('bike') - 10) {
+    if (k >= 1 && !j.hit && Math.abs(V.y - j.ty) < 14 && j.x > V.x + 10 && j.x < V.x + vlen('bike') - 20) {
       j.hit = true; bikeHit(['BRIEFCASE!', 'WAITLIST!', 'HOT COFFEE!', 'CONE!'][j.obj] + ' -1 BIKE');
     }
   }
@@ -611,7 +611,7 @@ function chaseHit(c, b) {
 function updateChaseShots(dt) {
   for (const b of S.bullets) {
     const x0 = b.x; b.x += (ROADSPEED + 1500) * dt; b.d += 1500 * dt;
-    const hit = [S.limo, S.suv, ...S.cars].filter(c => Math.abs(c.y - b.depth) < 26 && x0 < c.x + vlen(c.kind) && b.x >= c.x).sort((p, q) => p.x - q.x)[0];
+    const hit = [S.limo, S.suv, ...S.cars].filter(c => Math.abs(c.y - b.depth) < (c === S.limo ? 40 : 16) && x0 < c.x + vlen(c.kind) && b.x >= c.x).sort((p, q) => p.x - q.x)[0];
     if (hit) { b.done = true; chaseHit(hit, b); } else if (b.d > 1000) b.done = true;
   }
   S.bullets = S.bullets.filter(b => !b.done);
