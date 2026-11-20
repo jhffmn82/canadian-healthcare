@@ -206,7 +206,7 @@ const MISSIONS = [
   { map: 'depot', name: 'BORDER TOWN', fact: "An estimated 105,529 Canadians left the country for medical treatment in 2025, up 66% in a decade.", src: "Fraser Institute, Leaving Canada for Medical Care 2026", sick: 4, time: 85, buses: [4190], flee: 160, brief: 'b7', text: "We have a leak. Four cases are at the bus depot, and that bus goes to Seattle. If they cross the border, they get treated. Intercept them before they board. That is an order." },
   { map: 'depot2', name: 'LAST BUS', fact: "A new cancer drug takes a median 581 days to be publicly funded in Canada, against 382 days across 20 comparable countries.", src: "Current Oncology, 2024 review", sick: 5, time: 85, buses: [845, 4190], flee: 170, brief: 'b8', text: "Last buses of the night. Two coaches, five cases, and every one of them has heard about American oncologists. Not one of them leaves this platform." },
   { map: 'hill', name: 'QUESTION PERIOD', fact: "16,499 Canadians died by MAID in 2024, about one in twenty deaths. Cancer was the underlying condition in 63.6% of them.", src: "Health Canada, Sixth Annual Report on MAID, 2025", sick: 3, time: 90, press: true, boss: true, brief: 'b9', text: "Parliament Hill. Three cases among the staffers. The press is on site. If their camera sees you work, this ministry has never heard of you. Also, the Minister is due for his annual checkup. Scan him. Discreetly." },
-  { map: 'road', name: 'THE MOTORCADE', fact: "The Parliamentary Budget Officer estimated expanded MAID would cut health-care costs by about $149 million a year.", src: "PBO, Cost Estimate for Bill C-7, 2020", sick: 1, time: 60, chase: true, brief: 'b10', text: "Priority alert. The Minister scanned positive and is fleeing to a private clinic in Seattle. His motorcade is on the highway to the border. Take the bike. Stop that limo. Do not hit civilian vehicles, and dodge whatever his security throws." },
+  { map: 'road', name: 'THE MOTORCADE', fact: "The Parliamentary Budget Officer estimated expanded MAID would cut health-care costs by about $149 million a year.", src: "PBO, Cost Estimate for Bill C-7, 2020", sick: 1, time: 75, chase: true, brief: 'b10', text: "Priority alert. The Minister scanned positive and is fleeing to a private clinic in Seattle. His motorcade is on the highway to the border. Take the bike. Stop that limo. Do not hit civilian vehicles, and dodge whatever his security throws." },
 ];
 let music = null;
 function playMusic(name, vol = 0.45) {
@@ -502,118 +502,117 @@ function update(dt) {
 }
 
 // ---------- the chase ----------
-const LANES = () => MAP.lanes;
-const VLEN = { bike: 230, limo: 470, suv: 270, pickup: 300, minivan: 280, taxi: 260, hatch: 220 };
-const vlen = k => VEH[k].naturalWidth || VLEN[k];
+// The road scrolls by itself. The bike moves freely: left/right along the screen, up/down across the road.
+// Traffic, the security SUV and whatever its guard throws all hurt; 5 hits and you wipe out (a maple leaf, and a restart).
+const ROAD = { top: 336, bot: 526 }, ROADSPEED = 560, BIKEHP = 5;
+const vlen = k => VEH[k].naturalWidth || 120;
 function setupChase() {
-  S.van = { x: 0, lane: 2, y: LANES()[2], v: 620, hit: 0 };
-  S.limo = { kind: 'limo', x: 900, lane: 1, y: LANES()[1], v: 640, hp: 6, flash: 0, slow: 0, next: 2, spin: 0 };
-  S.suv = { kind: 'suv', x: 560, lane: 2, y: LANES()[2], v: 640 };
-  S.cars = []; S.spawn = 0.5; S.taunt = 4; S.shake = 0; S.over = false; S.junk = []; S.throwT = 3; S.bullets = []; S.verdicts = []; S.sparks = []; S.muzzle = null;
+  S.cam = 0;
+  S.van = { x: 220, sx: 220, y: 440, hp: BIKEHP, inv: 0 };
+  S.limo = { kind: 'limo', x: 760, sx: 760, y: 392, ty: 392, hp: 6, flash: 0, slow: 0, next: 2, spin: 0 };
+  S.suv = { kind: 'suv', x: 520, sx: 520, y: 470, ty: 470, throwing: 0 };
+  S.cars = []; S.spawn = 1.5; S.taunt = 4; S.shake = 0; S.over = false; S.junk = []; S.throwT = 3.5;
+  S.bullets = []; S.verdicts = []; S.sparks = []; S.muzzle = null;
   S.p = { x: 0, y: 0, dir: 1, walk: 0, gunT: 0 };
 }
-function laneBlocked(lane, x, len) { return S.cars.some(c => c.lane === lane && c.x > x - 60 && c.x < x + len + 120); }
+const overlaps = (a, b, pad = 0) => a.x + vlen(a.kind || 'bike') - pad > b.x && a.x + pad < b.x + vlen(b.kind) && Math.abs(a.y - b.y) < 22;
+function bikeHit(what) {
+  const V = S.van;
+  if (V.inv > 0 || S.over) return;
+  V.hp--; V.inv = 1.4; S.shake = 0.35;
+  tone(90, 0.3, 'sawtooth', 0.2); tone(500, 0.2, 'square', 0.08, 200);
+  float(what, V.x + 60, V.y - 110, '#ff9a2a');
+  if (V.hp <= 0) { float('WIPED OUT!', V.x + 60, V.y - 140, '#ff4a5a'); S.over = 'crash'; setTimeout(() => { if (mode === 'play') endMission(false, 'crash'); }, 1200); }
+}
 function updateChase(dt) {
-  const V = S.van, L = S.limo, lanes = LANES();
+  const V = S.van, L = S.limo, G = S.suv;
   S.t -= dt; S.clock += dt; S.fireCd -= dt; S.flash -= dt; S.shake = Math.max(0, S.shake - dt);
-  if (S.tracer && (S.tracer.t -= dt) <= 0) S.tracer = null;
   if (updateChaseShots(dt)) return;
-  if (S.over) { L.spin += dt; L.v = Math.max(0, L.v - 900 * dt); L.x += L.v * dt; V.v = Math.max(0, V.v - 500 * dt); V.x += V.v * dt; for (const f of S.floats) f.t += dt; return; }
-  // the van: up/down change lane, left/right brake and boost
-  if (!S.laneCd || S.laneCd < S.clock) {
-    if (keys.U && V.lane > 0) { V.lane--; S.laneCd = S.clock + 0.22; }
-    if (keys.D && V.lane < 3) { V.lane++; S.laneCd = S.clock + 0.22; }
-  }
-  V.y += (lanes[V.lane] - V.y) * Math.min(1, dt * 10);
-  const want = V.hit > 0 ? 260 : keys.R ? 820 : keys.L ? 470 : 650;
-  V.v += (want - V.v) * Math.min(1, dt * 2.5); V.hit -= dt; V.x += V.v * dt;
-  // the limo weaves, dodges traffic, slows when hit
-  L.next -= dt; L.slow -= dt; L.flash -= dt;
-  const blocked = laneBlocked(L.lane, L.x, vlen('limo'));
-  if (L.next <= 0 || blocked) {
-    const opts = [L.lane - 1, L.lane + 1].filter(l => l >= 0 && l <= 3 && !laneBlocked(l, L.x - 100, vlen('limo') + 100));
-    if (opts.length) L.lane = pick(opts);
-    L.next = 1.5 + Math.random() * 2.5;
-  }
-  L.y += (lanes[L.lane] - L.y) * Math.min(1, dt * 4);
-  L.v = (L.slow > 0 ? 470 : 660) + Math.sin(S.clock * 0.7) * 50;
-  L.x += L.v * dt;
-  // keep him on screen ahead of the van, but able to pull away
-  L.x = clamp(L.x, V.x + 260, V.x + 640);
-  // the escort sits in the van's lane, between the van and the limo
-  const G = S.suv;
-  G.lane = V.lane === L.lane ? (S.clock % 6 < 3.5 ? V.lane : G.lane) : G.lane;
-  if (Math.random() < dt * 0.4) G.lane = V.lane;
-  G.y += (lanes[G.lane] - G.y) * Math.min(1, dt * 3);
-  G.x += ((L.x - 360) - G.x) * Math.min(1, dt * 1.5);
-  // traffic: slower cars to weave through
-  if ((S.spawn -= dt) <= 0) {
-    S.spawn = 0.7 + Math.random() * 0.9;
-    const kind = pick(['pickup', 'minivan', 'taxi', 'hatch']), lane = Math.random() * 4 | 0;
-    if (!laneBlocked(lane, V.x + 1150, vlen(kind))) S.cars.push({ kind, lane, y: lanes[lane], x: V.x + 1200, v: 330 + Math.random() * 120 });
-  }
-  for (const c of S.cars) c.x += c.v * dt;
-  S.cars = S.cars.filter(c => c.x > V.x - 600);
-  // crashing into traffic costs speed
-  for (const c of [...S.cars, G]) {
-    if (c.lane === V.lane && Math.abs(c.y - V.y) < 30 && V.x + vlen('bike') > c.x && V.x < c.x + vlen(c.kind) && V.hit <= 0) {
-      V.hit = 1.1; V.v = Math.min(V.v, 300); S.shake = 0.4; tone(90, 0.3, 'sawtooth', 0.2); tone(500, 0.2, 'square', 0.08, 200);
-      float('CRASH!', V.x + 200, V.y - 160, '#ff9a2a');
-    }
-  }
-  if ((S.throwT -= dt) <= 0 && G.x > V.x + 150) {
-    S.throwT = 1.2 + Math.random() * 0.8; G.throwing = 0.45;
-    S.junk.push({ obj: Math.random() * 4 | 0, x: G.x + 90, y0: G.y - 120, ty: lanes[V.lane], lane: V.lane, t: 0, dur: 1.0, vx: G.v - 430, rot: 0 });
-    tone(700, 0.08, 'triangle', 0.05, 300);
-  }
-  G.throwing = (G.throwing || 0) - dt;
-  for (const j of S.junk) {
-    j.t += dt; j.rot += dt * 9;
-    j.x += (j.t < j.dur ? j.vx : 0) * dt;        // once it lands it lies on the road
-    const k = Math.min(1, j.t / j.dur); j.y = j.y0 + (j.ty - j.y0) * k - Math.sin(k * Math.PI) * 140;
-    if (k > 0.8 && !j.hit && j.lane === V.lane && Math.abs(V.y - j.ty) < 30 && j.x > V.x - 20 && j.x < V.x + vlen('bike')) {
-      j.hit = true; V.hit = 1.2; V.v = Math.min(V.v, 280); S.shake = 0.4; tone(160, 0.25, 'sawtooth', 0.2);
-      float(['BRIEFCASE!', 'WAITLIST!', 'HOT COFFEE!', 'CONE!'][j.obj], V.x + 160, V.y - 160, '#ff9a2a');
-    }
-  }
-  S.junk = S.junk.filter(j => !j.hit && j.x > V.x - 400);
-  if ((S.taunt -= dt) <= 0) { S.taunt = 7 + Math.random() * 4; const i = 1 + (Math.random() * 4 | 0); talk(`taunt-${i}`); S.limoBubble = { text: ['You will never catch me! I have a NEXUS card!', 'My wait time in Seattle? Twenty minutes!', 'Driver, faster! Bill it to the taxpayer!', 'I voted for this, but not for ME!'][i - 1], t: 3 }; }
-  if (S.limoBubble && (S.limoBubble.t -= dt) <= 0) S.limoBubble = null;
   for (const f of S.floats) f.t += dt;
   S.floats = S.floats.filter(f => f.t < 1.8);
+  if (S.over) {                                   // the limo spins out, or she wipes out: the road slows to a stop
+    if (S.over === true) { L.spin += dt; }
+    S.cam += ROADSPEED * Math.max(0, 1 - S.clock * 0) * dt * 0.3; return;
+  }
+  S.cam += ROADSPEED * dt;
+  // the bike: free movement on screen and across the road
+  const mx = (keys.R ? 1 : 0) - (keys.L ? 1 : 0), my = (keys.D ? 1 : 0) - (keys.U ? 1 : 0);
+  V.sx = clamp(V.sx + mx * 300 * dt, 40, 600);
+  V.y = clamp(V.y + my * 230 * dt, ROAD.top, ROAD.bot);
+  V.x = S.cam + V.sx; V.inv -= dt;
+  // the limo stays ahead on screen, weaving; a hit makes it falter and drift back toward you
+  L.next -= dt; L.slow -= dt; L.flash -= dt;
+  if (L.next <= 0) { L.next = 2 + Math.random() * 2.5; L.ty = ROAD.top + Math.random() * (ROAD.bot - ROAD.top); }
+  L.y += (L.ty - L.y) * Math.min(1, dt * 1.6);
+  L.sx += ((L.slow > 0 ? 620 : 780 + Math.sin(S.clock * 0.6) * 50) - L.sx) * Math.min(1, dt * 1.2);
+  L.x = S.cam + L.sx;
+  // the security SUV hangs between you and the limo and drifts toward your line
+  if (Math.random() < dt * 0.5) G.ty = clamp(V.y + (Math.random() - 0.5) * 60, ROAD.top, ROAD.bot);
+  G.y += (G.ty - G.y) * Math.min(1, dt * 1.1);
+  G.sx += ((L.sx - 250) - G.sx) * Math.min(1, dt);
+  G.x = S.cam + G.sx;
+  // traffic: slower cars coming back toward you, spaced so there is always a way through
+  if ((S.spawn -= dt) <= 0) {
+    S.spawn = 1.3 + Math.random() * 1.1;
+    const kind = pick(['pickup', 'minivan', 'taxi', 'hatch']), y = ROAD.top + Math.random() * (ROAD.bot - ROAD.top);
+    if (!S.cars.some(c => Math.abs(c.y - y) < 50 && c.x > S.cam + 800)) S.cars.push({ kind, y, x: S.cam + 1000, v: 250 + Math.random() * 100 });
+  }
+  for (const c of S.cars) c.x += c.v * dt;
+  S.cars = S.cars.filter(c => c.x > S.cam - 400);
+  for (const c of S.cars) if (overlaps(V, c, 14)) bikeHit('CRASH! -1 BIKE');
+  if (overlaps(V, G, 14)) bikeHit('RAMMED! -1 BIKE');
+  // the guard throws something every couple of seconds; a shadow shows where it will land
+  if ((S.throwT -= dt) <= 0 && G.sx > V.sx + 100) {
+    S.throwT = 2 + Math.random() * 1.2; G.throwing = 0.45;
+    const dur = 1.25, land = V.sx + 30;              // aimed at where she is now, on screen
+    S.junk.push({ obj: Math.random() * 4 | 0, sx: G.sx + 40, sx1: land, y0: G.y - 80, ty: V.y, t: 0, dur, rot: 0 });
+    tone(700, 0.08, 'triangle', 0.05, 300);
+  }
+  G.throwing -= dt;
+  for (const j of S.junk) {
+    j.t += dt; j.rot += dt * 9;
+    const k = Math.min(1, j.t / j.dur);
+    j.sxNow = j.t < j.dur ? j.sx + (j.sx1 - j.sx) * k : j.sx1 - (j.t - j.dur) * ROADSPEED;   // once down it lies on the road
+    j.x = S.cam + j.sxNow; j.y = j.y0 + (j.ty - j.y0) * k - Math.sin(k * Math.PI) * 110;
+    if (k >= 1 && !j.hit && Math.abs(V.y - j.ty) < 20 && j.x > V.x - 10 && j.x < V.x + vlen('bike') - 10) {
+      j.hit = true; bikeHit(['BRIEFCASE!', 'WAITLIST!', 'HOT COFFEE!', 'CONE!'][j.obj] + ' -1 BIKE');
+    }
+  }
+  S.junk = S.junk.filter(j => !j.hit && j.sxNow > -100);
+  if ((S.taunt -= dt) <= 0) { S.taunt = 7 + Math.random() * 4; const i = 1 + (Math.random() * 4 | 0); talk(`taunt-${i}`); S.limoBubble = { text: ['You will never catch me! I have a NEXUS card!', 'My wait time in Seattle? Twenty minutes!', 'Driver, faster! Bill it to the taxpayer!', 'I voted for this, but not for ME!'][i - 1], t: 3 }; }
+  if (S.limoBubble && (S.limoBubble.t -= dt) <= 0) S.limoBubble = null;
   if (!S.hurry && S.t < 20) { S.hurry = true; voice('ann-hurry'); }
   if (S.t <= 0) { S.bossOut = true; endMission(false, 'escaped'); }
 }
 function chaseFire() {
   if (S.fireCd > 0 || S.over) return;
-  S.fireCd = 0.35;
-  const V = S.van, gx = V.x + vlen('bike') - 40, gy = V.y - 95;
+  S.fireCd = 0.3;
+  const V = S.van, gx = V.x + vlen('bike') - 10, gy = V.y - 70;
   bang(); S.flash = 0.05;
   S.muzzle = { x: gx, y: gy, t: 0.08 };
   S.bullets.push({ x: gx, y: gy, depth: V.y, dir: 1, d: 0 });
 }
 function chaseHit(c, b) {
-  S.sparks.push({ x: b.x, y: b.y + (c.y - b.depth) * 0.5, t: 0.3 });
+  S.sparks.push({ x: b.x, y: b.y, t: 0.3 });
   if (c !== S.limo) {
     c.flash = 0.18; tone(140, 0.12, 'square', 0.15);
-    S.verdicts.push({ t: 0.8, run: () => strike(c.x + 100, c.y - 150, c.kind === 'suv' ? 'SECURITY DETAIL HIT!' : 'CIVILIAN HIT!') });
+    S.verdicts.push({ t: 0.8, run: () => strike(c.x + 60, c.y - 110, c.kind === 'suv' ? 'SECURITY DETAIL HIT!' : 'CIVILIAN HIT!') });
     return;
   }
-  const L = S.limo; L.hp--; L.flash = 0.15; L.slow = 0.9; tone(1400, 0.05, 'square', 0.12);
-  float(L.hp > 0 ? `HIT! ${L.hp} TO GO` : 'TARGET DOWN!', L.x + 200, L.y - 160, '#ffd23a');
+  const L = S.limo; L.hp--; L.flash = 0.15; L.slow = 1.2; tone(1400, 0.05, 'square', 0.12);
+  float(L.hp > 0 ? `HIT! ${L.hp} TO GO` : 'TARGET DOWN!', L.x + 120, L.y - 120, '#ffd23a');
   if (L.hp <= 0) {
     S.over = true; S.closed = 1; S.found = 1; const amt = 2400000; S.saved += amt;
     voice('ann-target'); setTimeout(() => talk('min-crash'), 900);
-    float('+' + money(amt) + ' PENSION SAVED', L.x + 200, L.y - 130, '#7aff9a');
-    setTimeout(() => { if (S.over && mode === 'play') endMission(true); }, 6500);
+    float('+' + money(amt) + ' PENSION SAVED', L.x + 120, L.y - 95, '#7aff9a');
+    setTimeout(() => { if (S.over === true && mode === 'play') endMission(true); }, 6500);
   }
 }
 function updateChaseShots(dt) {
-  const V = S.van;
   for (const b of S.bullets) {
-    const x0 = b.x; b.x += (V.v + 1600) * dt; b.d += 1600 * dt;
-    const hit = [S.limo, S.suv, ...S.cars].filter(c => Math.abs(c.y - b.depth) < 40 && x0 < c.x + vlen(c.kind) && b.x >= c.x).sort((p, q) => p.x - q.x)[0];
-    if (hit) { b.done = true; chaseHit(hit, b); } else if (b.d > 1300) b.done = true;
+    const x0 = b.x; b.x += (ROADSPEED + 1500) * dt; b.d += 1500 * dt;
+    const hit = [S.limo, S.suv, ...S.cars].filter(c => Math.abs(c.y - b.depth) < 26 && x0 < c.x + vlen(c.kind) && b.x >= c.x).sort((p, q) => p.x - q.x)[0];
+    if (hit) { b.done = true; chaseHit(hit, b); } else if (b.d > 1000) b.done = true;
   }
   S.bullets = S.bullets.filter(b => !b.done);
   for (const v of S.verdicts) if ((v.t -= dt) <= 0) { v.done = true; v.run(); }
@@ -624,29 +623,31 @@ function updateChaseShots(dt) {
   for (const c of [S.suv, ...S.cars]) if (c.flash) c.flash -= dt;
   if (S.wrongT !== undefined && (S.wrongT -= dt) <= 0) { S.wrongT = undefined; endMission(false, 'leaves'); return true; }
 }
-function vehicle(kind, x, y, cam, flip) {
+function vehicle(kind, x, y, cam) {
   const im = VEH[kind]; if (!im.complete || !im.naturalWidth) return;
   g.drawImage(im, Math.round(x - cam), Math.round(y - im.height));
 }
 function drawChase() {
-  const V = S.van, L = S.limo, cam = V.x - 140 + (S.shake > 0 ? (Math.random() - 0.5) * 16 : 0);
+  const V = S.van, L = S.limo, G = S.suv, cam = S.cam + (S.shake > 0 ? (Math.random() - 0.5) * 14 : 0);
   g.imageSmoothingEnabled = false;
   const first = Math.floor(cam / PW);
   for (let i = first; i <= first + 1; i++) g.drawImage(PANELS[MAP.panels[((i % 3) + 3) % 3]], Math.round(i * PW - cam), 0, PW, VH);
-  const all = [...S.cars, S.suv, L, { kind: 'bike', x: V.x, y: V.y }].sort((a, b) => a.y - b.y);
-  for (const j of S.junk) {                     // a shadow on the road shows where it will land
-    if (j.t < j.dur) { g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(j.x - cam + (j.dur - j.t) * j.vx, j.ty, 26, 7, 0, 0, 7); g.fill(); }
+  for (const j of S.junk) if (j.t < j.dur) {       // a shadow on the road shows where it will land
+    g.fillStyle = 'rgba(0,0,0,.4)'; g.beginPath(); g.ellipse(S.cam + j.sx1 - cam, j.ty, 20, 6, 0, 0, 7); g.fill();
+    g.strokeStyle = 'rgba(255,60,60,.6)'; g.lineWidth = 2; g.stroke();
   }
+  const all = [...S.cars, G, L, { kind: 'bike', x: V.x, y: V.y, bike: true }].sort((a, b) => a.y - b.y);
   for (const c of all) {
-    if (c === S.suv && S.suv.throwing > 0 && VEH.suvthrow.naturalWidth) { vehicle('suvthrow', c.x, c.y, cam); continue; }
+    g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(c.x - cam + vlen(c.kind) / 2, c.y, vlen(c.kind) / 2, 6, 0, 0, 7); g.fill();
+    if (c.bike && V.inv > 0 && Math.floor(V.inv * 12) % 2) continue;   // blinking while invulnerable
+    if (c === G && G.throwing > 0 && VEH.suvthrow.naturalWidth) { vehicle('suvthrow', c.x, c.y, cam); continue; }
     if (c === L && L.spin > 0) {
       const im = VEH.limo; g.save(); g.translate(L.x - cam + im.width / 2, L.y - im.height / 2); g.rotate(L.spin * 3);
       g.drawImage(im, -im.width / 2, -im.height / 2); g.restore(); continue;
     }
     if (c.flash > 0) g.filter = 'brightness(2.5)';
-    vehicle(c.kind, c.x, c.y + Math.sin(S.clock * 30 + c.x) * 1.2, cam);
+    vehicle(c.kind, c.x, c.y + Math.sin(S.clock * 30 + c.x) * 1, cam);
     g.filter = 'none';
-    if (c === L && L.flash > 0) { g.fillStyle = 'rgba(255,255,255,.6)'; g.fillRect(L.x - cam, L.y - VEH.limo.height, VEH.limo.width, VEH.limo.height); }
   }
   for (const j of S.junk) {
     const im = VEH['obj-' + j.obj]; if (!im.naturalWidth) continue;
@@ -656,14 +657,14 @@ function drawChase() {
   g.textAlign = 'center'; g.textBaseline = 'middle';
   for (const f of S.floats) {
     g.globalAlpha = clamp(1.8 - f.t, 0, 1); g.font = font(12);
-    const fx = clamp(f.x - cam, 160, VW - 160), fy = f.y - 40 - f.t * 30, fw = g.measureText(f.text).width + 16;
+    const fx = clamp(f.x - cam, 160, VW - 160), fy = f.y - 20 - f.t * 30, fw = g.measureText(f.text).width + 16;
     g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(fx - fw / 2, fy - 13, fw, 26); g.fillStyle = f.color; g.fillText(f.text, fx, fy + 1);
   }
   g.globalAlpha = 1;
-  if (S.limoBubble && L.spin === 0) bubble(S.limoBubble.text, clamp(L.x - cam + 330, 140, VW - 140), L.y - VEH.limo.height - 6);
+  if (S.limoBubble && L.spin === 0) bubble(S.limoBubble.text, clamp(L.x - cam + vlen('limo') * 0.6, 140, VW - 140), L.y - VEH.limo.height - 6);
   snowfall();
   if (S.flash > 0) { g.fillStyle = 'rgba(255,255,220,.3)'; g.fillRect(0, 0, VW, VH); }
-  // HUD: the border clock, the limo's armour, distance
+  // HUD: the border clock, the limo's armour, the bike's armour
   const secs = Math.ceil(Math.max(0, S.t));
   g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(0, 0, VW, 54);
   g.font = font(12); g.textBaseline = 'top'; g.textAlign = 'left'; g.fillStyle = '#ff2a3a'; g.fillText('M10 THE MOTORCADE', 16, 10);
@@ -673,11 +674,13 @@ function drawChase() {
   g.font = font(28); g.textAlign = 'center'; g.fillStyle = S.t < 20 && Math.floor(performance.now() / 300) % 2 ? '#ff2a3a' : '#fff';
   g.fillText(`${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`, VW / 2, 14);
   g.font = font(9); g.fillStyle = '#aaa'; g.fillText('STOP THE LIMO', VW / 2, 54);
-  g.textAlign = 'right'; g.font = font(10); g.fillStyle = '#ffd23a'; g.fillText('LIMO', VW - 16 - 6 * 22 - 10, 12);
-  for (let i = 0; i < 6; i++) { g.fillStyle = i < L.hp ? '#ff2a3a' : '#333'; g.fillRect(VW - 16 - (6 - i) * 22, 10, 18, 14); }
-  if (S.clock < 6) {
-    g.textAlign = 'center'; g.font = font(10); g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(110, VH - 44, 740, 30);
-    g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.fillText('UP/DOWN CHANGE LANE  RIGHT BOOST  LEFT BRAKE  F FIRE', VW / 2, VH - 28);
+  g.textAlign = 'right'; g.font = font(10); g.fillStyle = '#ffd23a'; g.fillText('LIMO', VW - 16 - 6 * 22 - 10, 10);
+  for (let i = 0; i < 6; i++) { g.fillStyle = i < L.hp ? '#ff2a3a' : '#333'; g.fillRect(VW - 16 - (6 - i) * 22, 8, 18, 12); }
+  g.fillStyle = '#7ae0ff'; g.fillText('BIKE', VW - 16 - 6 * 22 - 10, 32);
+  for (let i = 0; i < BIKEHP; i++) { g.fillStyle = i < V.hp ? '#3fd6ff' : '#333'; g.fillRect(VW - 16 - (6 - i) * 22, 30, 18, 12); }
+  if (S.clock < 7) {
+    g.textAlign = 'center'; g.font = font(10); g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(90, VH - 44, 780, 30);
+    g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.fillText('ARROWS STEER   F FIRE   DODGE TRAFFIC AND THROWN JUNK', VW / 2, VH - 28);
   }
 }
 
@@ -978,10 +981,10 @@ function drawResult() {
   cover(IMG['still-7'], 0.35);
   g.textAlign = 'center'; g.textBaseline = 'top';
   const wrong = S.why === 'wrong';
-  const head = S.gameOver ? 'GAME OVER' : { leaves: 'MALPRACTICE!', escaped: 'ESCAPED!', scandal: 'SCANDAL!', time: 'TIME UP!' }[S.why];
+  const head = S.gameOver ? 'GAME OVER' : { leaves: 'MALPRACTICE!', escaped: 'ESCAPED!', scandal: 'SCANDAL!', time: 'TIME UP!', crash: 'WIPED OUT!' }[S.why];
   g.font = font(26); g.fillStyle = S.win ? '#ffd23a' : '#ff2a3a'; g.fillText(S.win ? 'ALL FILES CLOSED!' : head, VW / 2, 80);
   g.font = font(12); g.fillStyle = '#fff';
-  const why = { leaves: ['TOO MANY HEALTHY TAXPAYERS.', 'THE PROVINCE LOSES THEIR TAX REVENUE.'], escaped: [S.bossOut ? 'THE MINISTER CROSSED THE BORDER.' : 'A PATIENT BOARDED THE BUS TO SEATTLE.', S.bossOut ? 'HE WILL BE TREATED IN A PRIVATE US CLINIC.' : 'THEY WILL BE TREATED IN THE UNITED STATES.'], scandal: ['THE CAMERA CAUGHT YOU ON LIVE TV.', 'THE MINISTER HAS NEVER MET YOU.'] }[S.why];
+  const why = { leaves: ['TOO MANY HEALTHY TAXPAYERS.', 'THE PROVINCE LOSES THEIR TAX REVENUE.'], escaped: [S.bossOut ? 'THE MINISTER CROSSED THE BORDER.' : 'A PATIENT BOARDED THE BUS TO SEATTLE.', S.bossOut ? 'HE WILL BE TREATED IN A PRIVATE US CLINIC.' : 'THEY WILL BE TREATED IN THE UNITED STATES.'], scandal: ['THE CAMERA CAUGHT YOU ON LIVE TV.', 'THE MINISTER HAS NEVER MET YOU.'], crash: ['YOUR BIKE TOOK ONE HIT TOO MANY.', 'THE MINISTER WAVES FROM HIS LIMO.'] }[S.why];
   if (!S.win && why) { g.fillText(why[0], VW / 2, 160); g.fillStyle = '#aaa'; g.fillText(why[1], VW / 2, 190); }
   g.fillStyle = '#fff'; g.fillText(`CASES FOUND: ${S.found}/${S.m.sick}`, VW / 2, 240);
   g.fillStyle = '#7aff9a'; g.fillText(`PROVINCE SAVED: ${money(S.saved)}`, VW / 2, 272);
