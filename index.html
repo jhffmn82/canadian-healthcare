@@ -62,7 +62,7 @@ let skipped = false, curAudio = null, talkAudio = null;
 
 // ---------- audio ----------
 let ctx;
-const VOICES = ["ann-chase", "ann-closed", "ann-detected", "ann-escaped", "ann-gameover", "ann-goal", "ann-hurry", "ann-line", "ann-malpractice", "ann-mission", "ann-noteligible", "ann-onair", "ann-quota", "ann-scandal", "ann-target", "ann-time", "ann-title", "b1", "b10", "b2", "b3", "b4", "b5", "b6", "b7", "b8", "b9", "bark-1", "bark-2", "bark-3", "bark-4", "bark-5", "bark-6", "bark-7", "bark-8", "brief-10", "brief-2", "brief-4", "brief-6", "brief-7", "brief-8", "brief-9", "clear-1", "clear-2", "clear-3", "clear-4", "end-1", "end-2", "final-line", "flee-1", "flee-2", "flee-3", "flee-4", "flee-5", "min-1", "min-2", "min-3", "min-busted", "min-crash", "min-escape-boss", "min-escaped", "min-fail", "min-scandal", "min-win", "min-wrong", "npc/f1-bark-1", "npc/f1-bark-2", "npc/f1-bark-3", "npc/f1-bark-4", "npc/f1-bark-5", "npc/f1-bark-6", "npc/f1-bark-7", "npc/f1-bark-8", "npc/f1-clear-1", "npc/f1-clear-2", "npc/f1-clear-3", "npc/f1-clear-4", "npc/f1-flee-1", "npc/f1-flee-2", "npc/f1-flee-3", "npc/f1-flee-4", "npc/f1-flee-5", "npc/f1-flee-bus", "npc/f2-bark-1", "npc/f2-bark-2", "npc/f2-bark-3", "npc/f2-bark-4", "npc/f2-bark-5", "npc/f2-bark-6", "npc/f2-bark-7", "npc/f2-bark-8", "npc/f2-clear-1", "npc/f2-clear-2", "npc/f2-clear-3", "npc/f2-clear-4", "npc/f2-flee-1", "npc/f2-flee-2", "npc/f2-flee-3", "npc/f2-flee-4", "npc/f2-flee-5", "npc/f2-flee-bus", "npc/fo-bark-1", "npc/fo-bark-2", "npc/fo-bark-3", "npc/fo-bark-4", "npc/fo-bark-5", "npc/fo-bark-6", "npc/fo-bark-7", "npc/fo-bark-8", "npc/fo-clear-1", "npc/fo-clear-2", "npc/fo-clear-3", "npc/fo-clear-4", "npc/fo-flee-1", "npc/fo-flee-2", "npc/fo-flee-3", "npc/fo-flee-4", "npc/fo-flee-5", "npc/fo-flee-bus", "npc/m1-bark-1", "npc/m1-bark-2", "npc/m1-bark-3", "npc/m1-bark-4", "npc/m1-bark-5", "npc/m1-bark-6", "npc/m1-bark-7", "npc/m1-bark-8", "npc/m1-clear-1", "npc/m1-clear-2", "npc/m1-clear-3", "npc/m1-clear-4", "npc/m1-flee-1", "npc/m1-flee-2", "npc/m1-flee-3", "npc/m1-flee-4", "npc/m1-flee-5", "npc/m1-flee-bus", "npc/m2-bark-1", "npc/m2-bark-2", "npc/m2-bark-3", "npc/m2-bark-4", "npc/m2-bark-5", "npc/m2-bark-6", "npc/m2-bark-7", "npc/m2-bark-8", "npc/m2-clear-1", "npc/m2-clear-2", "npc/m2-clear-3", "npc/m2-clear-4", "npc/m2-flee-1", "npc/m2-flee-2", "npc/m2-flee-3", "npc/m2-flee-4", "npc/m2-flee-5", "npc/m2-flee-bus", "npc/m3-bark-1", "npc/m3-bark-2", "npc/m3-bark-3", "npc/m3-bark-4", "npc/m3-bark-5", "npc/m3-bark-6", "npc/m3-bark-7", "npc/m3-bark-8", "npc/m3-clear-1", "npc/m3-clear-2", "npc/m3-clear-3", "npc/m3-clear-4", "npc/m3-flee-1", "npc/m3-flee-2", "npc/m3-flee-3", "npc/m3-flee-4", "npc/m3-flee-5", "npc/m3-flee-bus", "npc/mo-bark-1", "npc/mo-bark-2", "npc/mo-bark-3", "npc/mo-bark-4", "npc/mo-bark-5", "npc/mo-bark-6", "npc/mo-bark-7", "npc/mo-bark-8", "npc/mo-clear-1", "npc/mo-clear-2", "npc/mo-clear-3", "npc/mo-clear-4", "npc/mo-flee-1", "npc/mo-flee-2", "npc/mo-flee-3", "npc/mo-flee-4", "npc/mo-flee-5", "npc/mo-flee-bus", "taunt-1", "taunt-2", "taunt-3", "taunt-4", "vo-1", "vo-2", "vo-3", "vo-4", "vo-5", "vo-6", "vo-7", "vo-8", "vo-9"];
+const VOICES = ["ann-chase", "ann-closed", "ann-complete", "ann-detected", "ann-escaped", "ann-gameover", "ann-goal", "ann-hurry", "ann-line", "ann-malpractice", "ann-mission", "ann-noteligible", "ann-onair", "ann-provided", "ann-quota", "ann-scandal", "ann-target", "ann-time", "ann-title", "b1", "b10", "b2", "b3", "b4", "b5", "b6", "b7", "b8", "b9", "bark-1", "bark-2", "bark-3", "bark-4", "bark-5", "bark-6", "bark-7", "bark-8", "brief-10", "brief-2", "brief-4", "brief-6", "brief-7", "brief-8", "brief-9", "clear-1", "clear-2", "clear-3", "clear-4", "end-1", "end-2", "final-line", "flee-1", "flee-2", "flee-3", "flee-4", "flee-5", "min-1", "min-2", "min-3", "min-busted", "min-crash", "min-escape-boss", "min-escaped", "min-fail", "min-scandal", "min-win", "min-wrong", "npc/f1-bark-1", "npc/f1-bark-2", "npc/f1-bark-3", "npc/f1-bark-4", "npc/f1-bark-5", "npc/f1-bark-6", "npc/f1-bark-7", "npc/f1-bark-8", "npc/f1-clear-1", "npc/f1-clear-2", "npc/f1-clear-3", "npc/f1-clear-4", "npc/f1-flee-1", "npc/f1-flee-2", "npc/f1-flee-3", "npc/f1-flee-4", "npc/f1-flee-5", "npc/f1-flee-bus", "npc/f2-bark-1", "npc/f2-bark-2", "npc/f2-bark-3", "npc/f2-bark-4", "npc/f2-bark-5", "npc/f2-bark-6", "npc/f2-bark-7", "npc/f2-bark-8", "npc/f2-clear-1", "npc/f2-clear-2", "npc/f2-clear-3", "npc/f2-clear-4", "npc/f2-flee-1", "npc/f2-flee-2", "npc/f2-flee-3", "npc/f2-flee-4", "npc/f2-flee-5", "npc/f2-flee-bus", "npc/fo-bark-1", "npc/fo-bark-2", "npc/fo-bark-3", "npc/fo-bark-4", "npc/fo-bark-5", "npc/fo-bark-6", "npc/fo-bark-7", "npc/fo-bark-8", "npc/fo-clear-1", "npc/fo-clear-2", "npc/fo-clear-3", "npc/fo-clear-4", "npc/fo-flee-1", "npc/fo-flee-2", "npc/fo-flee-3", "npc/fo-flee-4", "npc/fo-flee-5", "npc/fo-flee-bus", "npc/m1-bark-1", "npc/m1-bark-2", "npc/m1-bark-3", "npc/m1-bark-4", "npc/m1-bark-5", "npc/m1-bark-6", "npc/m1-bark-7", "npc/m1-bark-8", "npc/m1-clear-1", "npc/m1-clear-2", "npc/m1-clear-3", "npc/m1-clear-4", "npc/m1-flee-1", "npc/m1-flee-2", "npc/m1-flee-3", "npc/m1-flee-4", "npc/m1-flee-5", "npc/m1-flee-bus", "npc/m2-bark-1", "npc/m2-bark-2", "npc/m2-bark-3", "npc/m2-bark-4", "npc/m2-bark-5", "npc/m2-bark-6", "npc/m2-bark-7", "npc/m2-bark-8", "npc/m2-clear-1", "npc/m2-clear-2", "npc/m2-clear-3", "npc/m2-clear-4", "npc/m2-flee-1", "npc/m2-flee-2", "npc/m2-flee-3", "npc/m2-flee-4", "npc/m2-flee-5", "npc/m2-flee-bus", "npc/m3-bark-1", "npc/m3-bark-2", "npc/m3-bark-3", "npc/m3-bark-4", "npc/m3-bark-5", "npc/m3-bark-6", "npc/m3-bark-7", "npc/m3-bark-8", "npc/m3-clear-1", "npc/m3-clear-2", "npc/m3-clear-3", "npc/m3-clear-4", "npc/m3-flee-1", "npc/m3-flee-2", "npc/m3-flee-3", "npc/m3-flee-4", "npc/m3-flee-5", "npc/m3-flee-bus", "npc/mo-bark-1", "npc/mo-bark-2", "npc/mo-bark-3", "npc/mo-bark-4", "npc/mo-bark-5", "npc/mo-bark-6", "npc/mo-bark-7", "npc/mo-bark-8", "npc/mo-clear-1", "npc/mo-clear-2", "npc/mo-clear-3", "npc/mo-clear-4", "npc/mo-flee-1", "npc/mo-flee-2", "npc/mo-flee-3", "npc/mo-flee-4", "npc/mo-flee-5", "npc/mo-flee-bus", "taunt-1", "taunt-2", "taunt-3", "taunt-4", "vo-1", "vo-2", "vo-3", "vo-4", "vo-5", "vo-6", "vo-7", "vo-8", "vo-9"];
 const BUF = {}, CH = {}; let vGain, speaking = 0;
 function loadVoice(name) {
   return BUF[name] || (BUF[name] = fetch(`vo/${name}.mp3`).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)));
@@ -297,14 +297,15 @@ async function endMission(win, why) {
   if (++MI < MISSIONS.length) { brief(); return; }
   mode = 'end'; S = { t0: performance.now(), stage: 0 };
   const say3 = n => new Promise(r => { const a = voice(n, 'talk'); a.onended = r; a.onerror = r; });
-  playMusic('title', 0.18);
-  await wait(2500);
-  S.stage = 1; S.t1 = performance.now();                // her scanner beeps, pointed at her
-  for (let i = 0; i < 3; i++) { tone(880, 0.12); await wait(180); tone(440, 0.3); await wait(520); }
-  await wait(2200);
-  S.stage = 2; S.t2 = performance.now(); playMusic(null);
+  const yell = n => new Promise(r => { const a = voice(n, 'ann'); a.onended = r; a.onerror = r; setTimeout(r, 5000); });
+  playMusic('ending', 0.6);
+  await wait(1200);
+  S.stage = 1; S.t1 = performance.now();                // the scanner stamps the file closed
+  tone(660, 0.1); setTimeout(() => tone(990, 0.25), 110);
+  await yell('ann-provided'); await wait(900);
+  S.stage = 2; S.t2 = performance.now();
   await wait(700); await say3('final-line'); await wait(2500);
-  S.stage = 3;                                          // the tally and the card, in silence
+  S.stage = 3; await yell('ann-complete');              // the tally and the card
   await anyPress();
   startGame();
 }
@@ -1000,13 +1001,13 @@ function drawEnd() {
     const k = Math.min(1, (performance.now() - S.t0) / 1500), z = 1;
     if (IMG.final.naturalWidth) { g.globalAlpha = k; g.drawImage(IMG.final, VW / 2 - 360 * z, 270 - 270 * z, 720 * z, 540 * z); g.globalAlpha = 1; }
     if (S.stage >= 1) {
-      const red = Math.floor(performance.now() / 250) % 2;
-      if (S.stage === 1) { g.fillStyle = red ? 'rgba(255,40,60,.22)' : 'rgba(255,40,60,.06)'; g.fillRect(0, 0, VW, VH); }
-      g.fillStyle = 'rgba(0,0,0,.8)'; g.fillRect(VW - 330, 250, 300, 92); g.strokeStyle = '#ff2a3a'; g.lineWidth = 2; g.strokeRect(VW - 330, 250, 300, 92);
+      const fl = Math.max(0, 1 - (performance.now() - S.t1) / 400), on = S.stage > 1 || Math.floor(performance.now() / 250) % 2;
+      if (fl) { g.fillStyle = `rgba(255,255,255,${fl * 0.7})`; g.fillRect(0, 0, VW, VH); }
+      g.fillStyle = 'rgba(0,0,0,.8)'; g.fillRect(VW - 330, 250, 300, 92); g.strokeStyle = '#7aff9a'; g.lineWidth = 2; g.strokeRect(VW - 330, 250, 300, 92);
       g.textAlign = 'left'; g.textBaseline = 'top'; g.font = font(10);
-      g.fillStyle = '#ff2a3a'; if (S.stage > 1 || red) g.fillText('MALIGNANCY DETECTED', VW - 318, 262);
-      g.fillStyle = '#fff'; g.fillText('SUBJECT: PROVIDER', VW - 318, 286);
-      g.fillStyle = '#ffd23a'; g.fillText('NEXT ONCOLOGY: 14 MO', VW - 318, 310);
+      g.fillStyle = '#7aff9a'; if (on) g.fillText('HEALTHCARE PROVIDED', VW - 318, 262);
+      g.fillStyle = '#fff'; g.fillText('PATIENT: THE MINISTER', VW - 318, 286);
+      g.fillStyle = '#ffd23a'; g.fillText('WAIT TIME: 0 DAYS', VW - 318, 310);
     }
     if (S.stage === 2) {
       const n = Math.floor((performance.now() - S.t2 - 700) / 55);
@@ -1020,14 +1021,14 @@ function drawEnd() {
   }
   g.fillStyle = '#000'; g.fillRect(0, 0, VW, VH);
   g.textAlign = 'center'; g.textBaseline = 'top';
-  g.font = font(18); g.fillStyle = '#ffd23a'; g.fillText('SHIFT COMPLETE', VW / 2, 40);
+  g.font = font(22); g.fillStyle = '#ffd23a'; g.fillText('MISSION COMPLETE!', VW / 2, 40);
   g.font = font(11);
   g.fillStyle = '#fff'; g.fillText(`FILES CLOSED: ${TOT.closed}`, VW / 2, 96);
   g.fillStyle = '#7aff9a'; g.fillText(`PROVINCE SAVED: ${money(TOT.saved)}`, VW / 2, 122);
   g.fillStyle = '#ff2a3a'; g.fillText('PATIENTS REFERRED FOR TREATMENT: 0', VW / 2, 148);
   g.font = font(11); g.fillStyle = '#fff'; wrapLines(TAG, 700).forEach((l, i) => g.fillText(l, VW / 2, 240 + i * 22));
   g.font = font(9); g.fillStyle = '#aaa'; wrapLines(FACT, 720).forEach((l, i) => g.fillText(l, VW / 2, 300 + i * 18));
-  if (blinkSlow()) { g.font = font(11); g.fillStyle = '#ff2a3a'; g.fillText('GAME OVER - PRESS START', VW / 2, 460); }
+  if (blinkSlow()) { g.font = font(11); g.fillStyle = '#ff2a3a'; g.fillText('THANKS FOR PLAYING - PRESS START', VW / 2, 460); }
 }
 let last = 0;
 function loop(t) {
