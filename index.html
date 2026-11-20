@@ -20,6 +20,8 @@
   @keyframes blink { 50% { opacity: 0; } }
   #start { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 5%; cursor: pointer; text-align: center; background: #000 url(stills/title.jpg) center / cover no-repeat; }
   #start h1 { color: var(--hot); font-size: clamp(16px, 4.5vmin, 46px); text-shadow: 4px 4px 0 var(--gold); margin: 0; }
+  #start.flash { animation: flash .6s ease-out; }
+  @keyframes flash { 0% { filter: brightness(3); } 100% { filter: brightness(1); } }
   #start p { font-size: clamp(10px, 2.2vmin, 20px); animation: blink 1s steps(1) infinite; color: var(--gold); text-shadow: 3px 3px 0 #000; margin: 0; }
   #game { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; display: none; }
   #skip { position: absolute; top: 3%; right: 3%; font: inherit; font-size: clamp(8px, 1.4vmin, 13px); background: #000; color: #fff; border: 2px solid #fff; padding: .6em .8em; display: none; cursor: pointer; z-index: 5; }
@@ -59,7 +61,7 @@ let skipped = false, curAudio = null, talkAudio = null;
 
 // ---------- audio ----------
 let ctx;
-const VOICES = ["ann-chase", "ann-closed", "ann-detected", "ann-escaped", "ann-gameover", "ann-goal", "ann-hurry", "ann-line", "ann-malpractice", "ann-mission", "ann-noteligible", "ann-onair", "ann-quota", "ann-scandal", "ann-target", "ann-time", "b1", "b10", "b2", "b3", "b4", "b5", "b6", "b7", "b8", "b9", "bark-1", "bark-2", "bark-3", "bark-4", "bark-5", "bark-6", "bark-7", "bark-8", "brief-10", "brief-2", "brief-4", "brief-6", "brief-7", "brief-8", "brief-9", "clear-1", "clear-2", "clear-3", "clear-4", "end-1", "end-2", "final-line", "flee-1", "flee-2", "flee-3", "flee-4", "flee-5", "min-1", "min-2", "min-3", "min-busted", "min-crash", "min-escape-boss", "min-escaped", "min-fail", "min-scandal", "min-win", "min-wrong", "npc/f1-bark-1", "npc/f1-bark-2", "npc/f1-bark-3", "npc/f1-bark-4", "npc/f1-bark-5", "npc/f1-bark-6", "npc/f1-bark-7", "npc/f1-bark-8", "npc/f1-clear-1", "npc/f1-clear-2", "npc/f1-clear-3", "npc/f1-clear-4", "npc/f1-flee-1", "npc/f1-flee-2", "npc/f1-flee-3", "npc/f1-flee-4", "npc/f1-flee-5", "npc/f1-flee-bus", "npc/f2-bark-1", "npc/f2-bark-2", "npc/f2-bark-3", "npc/f2-bark-4", "npc/f2-bark-5", "npc/f2-bark-6", "npc/f2-bark-7", "npc/f2-bark-8", "npc/f2-clear-1", "npc/f2-clear-2", "npc/f2-clear-3", "npc/f2-clear-4", "npc/f2-flee-1", "npc/f2-flee-2", "npc/f2-flee-3", "npc/f2-flee-4", "npc/f2-flee-5", "npc/f2-flee-bus", "npc/fo-bark-1", "npc/fo-bark-2", "npc/fo-bark-3", "npc/fo-bark-4", "npc/fo-bark-5", "npc/fo-bark-6", "npc/fo-bark-7", "npc/fo-bark-8", "npc/fo-clear-1", "npc/fo-clear-2", "npc/fo-clear-3", "npc/fo-clear-4", "npc/fo-flee-1", "npc/fo-flee-2", "npc/fo-flee-3", "npc/fo-flee-4", "npc/fo-flee-5", "npc/fo-flee-bus", "npc/m1-bark-1", "npc/m1-bark-2", "npc/m1-bark-3", "npc/m1-bark-4", "npc/m1-bark-5", "npc/m1-bark-6", "npc/m1-bark-7", "npc/m1-bark-8", "npc/m1-clear-1", "npc/m1-clear-2", "npc/m1-clear-3", "npc/m1-clear-4", "npc/m1-flee-1", "npc/m1-flee-2", "npc/m1-flee-3", "npc/m1-flee-4", "npc/m1-flee-5", "npc/m1-flee-bus", "npc/m2-bark-1", "npc/m2-bark-2", "npc/m2-bark-3", "npc/m2-bark-4", "npc/m2-bark-5", "npc/m2-bark-6", "npc/m2-bark-7", "npc/m2-bark-8", "npc/m2-clear-1", "npc/m2-clear-2", "npc/m2-clear-3", "npc/m2-clear-4", "npc/m2-flee-1", "npc/m2-flee-2", "npc/m2-flee-3", "npc/m2-flee-4", "npc/m2-flee-5", "npc/m2-flee-bus", "npc/m3-bark-1", "npc/m3-bark-2", "npc/m3-bark-3", "npc/m3-bark-4", "npc/m3-bark-5", "npc/m3-bark-6", "npc/m3-bark-7", "npc/m3-bark-8", "npc/m3-clear-1", "npc/m3-clear-2", "npc/m3-clear-3", "npc/m3-clear-4", "npc/m3-flee-1", "npc/m3-flee-2", "npc/m3-flee-3", "npc/m3-flee-4", "npc/m3-flee-5", "npc/m3-flee-bus", "npc/mo-bark-1", "npc/mo-bark-2", "npc/mo-bark-3", "npc/mo-bark-4", "npc/mo-bark-5", "npc/mo-bark-6", "npc/mo-bark-7", "npc/mo-bark-8", "npc/mo-clear-1", "npc/mo-clear-2", "npc/mo-clear-3", "npc/mo-clear-4", "npc/mo-flee-1", "npc/mo-flee-2", "npc/mo-flee-3", "npc/mo-flee-4", "npc/mo-flee-5", "npc/mo-flee-bus", "taunt-1", "taunt-2", "taunt-3", "taunt-4", "vo-1", "vo-2", "vo-3", "vo-4", "vo-5", "vo-6", "vo-7", "vo-8", "vo-9"];
+const VOICES = ["ann-chase", "ann-closed", "ann-detected", "ann-escaped", "ann-gameover", "ann-goal", "ann-hurry", "ann-line", "ann-malpractice", "ann-mission", "ann-noteligible", "ann-onair", "ann-quota", "ann-scandal", "ann-target", "ann-time", "ann-title", "b1", "b10", "b2", "b3", "b4", "b5", "b6", "b7", "b8", "b9", "bark-1", "bark-2", "bark-3", "bark-4", "bark-5", "bark-6", "bark-7", "bark-8", "brief-10", "brief-2", "brief-4", "brief-6", "brief-7", "brief-8", "brief-9", "clear-1", "clear-2", "clear-3", "clear-4", "end-1", "end-2", "final-line", "flee-1", "flee-2", "flee-3", "flee-4", "flee-5", "min-1", "min-2", "min-3", "min-busted", "min-crash", "min-escape-boss", "min-escaped", "min-fail", "min-scandal", "min-win", "min-wrong", "npc/f1-bark-1", "npc/f1-bark-2", "npc/f1-bark-3", "npc/f1-bark-4", "npc/f1-bark-5", "npc/f1-bark-6", "npc/f1-bark-7", "npc/f1-bark-8", "npc/f1-clear-1", "npc/f1-clear-2", "npc/f1-clear-3", "npc/f1-clear-4", "npc/f1-flee-1", "npc/f1-flee-2", "npc/f1-flee-3", "npc/f1-flee-4", "npc/f1-flee-5", "npc/f1-flee-bus", "npc/f2-bark-1", "npc/f2-bark-2", "npc/f2-bark-3", "npc/f2-bark-4", "npc/f2-bark-5", "npc/f2-bark-6", "npc/f2-bark-7", "npc/f2-bark-8", "npc/f2-clear-1", "npc/f2-clear-2", "npc/f2-clear-3", "npc/f2-clear-4", "npc/f2-flee-1", "npc/f2-flee-2", "npc/f2-flee-3", "npc/f2-flee-4", "npc/f2-flee-5", "npc/f2-flee-bus", "npc/fo-bark-1", "npc/fo-bark-2", "npc/fo-bark-3", "npc/fo-bark-4", "npc/fo-bark-5", "npc/fo-bark-6", "npc/fo-bark-7", "npc/fo-bark-8", "npc/fo-clear-1", "npc/fo-clear-2", "npc/fo-clear-3", "npc/fo-clear-4", "npc/fo-flee-1", "npc/fo-flee-2", "npc/fo-flee-3", "npc/fo-flee-4", "npc/fo-flee-5", "npc/fo-flee-bus", "npc/m1-bark-1", "npc/m1-bark-2", "npc/m1-bark-3", "npc/m1-bark-4", "npc/m1-bark-5", "npc/m1-bark-6", "npc/m1-bark-7", "npc/m1-bark-8", "npc/m1-clear-1", "npc/m1-clear-2", "npc/m1-clear-3", "npc/m1-clear-4", "npc/m1-flee-1", "npc/m1-flee-2", "npc/m1-flee-3", "npc/m1-flee-4", "npc/m1-flee-5", "npc/m1-flee-bus", "npc/m2-bark-1", "npc/m2-bark-2", "npc/m2-bark-3", "npc/m2-bark-4", "npc/m2-bark-5", "npc/m2-bark-6", "npc/m2-bark-7", "npc/m2-bark-8", "npc/m2-clear-1", "npc/m2-clear-2", "npc/m2-clear-3", "npc/m2-clear-4", "npc/m2-flee-1", "npc/m2-flee-2", "npc/m2-flee-3", "npc/m2-flee-4", "npc/m2-flee-5", "npc/m2-flee-bus", "npc/m3-bark-1", "npc/m3-bark-2", "npc/m3-bark-3", "npc/m3-bark-4", "npc/m3-bark-5", "npc/m3-bark-6", "npc/m3-bark-7", "npc/m3-bark-8", "npc/m3-clear-1", "npc/m3-clear-2", "npc/m3-clear-3", "npc/m3-clear-4", "npc/m3-flee-1", "npc/m3-flee-2", "npc/m3-flee-3", "npc/m3-flee-4", "npc/m3-flee-5", "npc/m3-flee-bus", "npc/mo-bark-1", "npc/mo-bark-2", "npc/mo-bark-3", "npc/mo-bark-4", "npc/mo-bark-5", "npc/mo-bark-6", "npc/mo-bark-7", "npc/mo-bark-8", "npc/mo-clear-1", "npc/mo-clear-2", "npc/mo-clear-3", "npc/mo-clear-4", "npc/mo-flee-1", "npc/mo-flee-2", "npc/mo-flee-3", "npc/mo-flee-4", "npc/mo-flee-5", "npc/mo-flee-bus", "taunt-1", "taunt-2", "taunt-3", "taunt-4", "vo-1", "vo-2", "vo-3", "vo-4", "vo-5", "vo-6", "vo-7", "vo-8", "vo-9"];
 const BUF = {}, CH = {}; let vGain, speaking = 0;
 function loadVoice(name) {
   return BUF[name] || (BUF[name] = fetch(`vo/${name}.mp3`).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)));
@@ -102,11 +104,19 @@ function bang() {
 }
 
 // ---------- intro ----------
+const sfx = name => { const a = new Audio(`sfx/${name}.mp3`); a.volume = 0.9; a.play().catch(() => {}); return a; };
+// the title tries its music at once; browsers that block sound before a click start it on PRESS START instead
+addEventListener('load', () => { playMusic('intro', 0.45); if (music) music.play().catch(() => { music = null; }); });
 $('start').onclick = async () => {
+  if (ctx) return;
   ctx = new AudioContext(); preloadVoices();
+  sfx('coin'); $('start').classList.add('flash'); $('start').querySelector('p').textContent = 'CREDIT 1';
+  await wait(650);
+  sfx('start'); voice('ann-title', 'ann');
+  await wait(1700);
   $('start').style.display = 'none';
   $('skip').style.display = 'block';
-  playMusic('title', 0.3);
+  if (!music || music.paused) playMusic('intro', 0.45);
   const still = $('still'), cap = $('cap');
   cap.style.display = 'block';
   for (let i = 0; i < LINES.length; i++) {
@@ -116,7 +126,7 @@ $('start').onclick = async () => {
     await wait(700); if (skipped) return;
   }
   still.classList.remove('on'); cap.style.display = 'none';
-  for (let v = 0.3; v > 0; v -= 0.03) { if (music) music.volume = Math.max(0, v); await wait(120); }
+  for (let v = music ? music.volume : 0; v > 0; v -= 0.03) { if (music) music.volume = Math.max(0, v); await wait(120); }
   await wait(1500); if (skipped) return;
   $('card').style.display = 'flex';
   $('tag').textContent = TAG; $('fact').textContent = FACT;
