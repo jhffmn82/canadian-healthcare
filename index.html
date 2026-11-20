@@ -109,13 +109,17 @@ const JUMP = +((location.search.match(/level=(\d+)/) || location.hash.match(/lev
 const sfx = name => { const a = new Audio(`sfx/${name}.mp3`); a.volume = 0.9; a.play().catch(() => {}); return a; };
 // the title tries its music at once; browsers that block sound before a click start it on PRESS START instead
 addEventListener('load', () => { playMusic('intro', 0.45); if (music) music.play().catch(() => { music = null; }); });
-$('start').onclick = async () => {
+// any key or a click on the title starts the game
+addEventListener('keydown', e => { if (!ctx && $('start').style.display !== 'none') { e.preventDefault(); startPressed(); } }, true);
+$('start').onclick = () => startPressed();
+async function startPressed() {
   if (ctx) return;
   ctx = new AudioContext(); preloadVoices();
   sfx('coin'); $('start').classList.add('flash'); $('start').querySelector('p').textContent = 'CREDIT 1';
   await wait(650);
-  sfx('start'); voice('ann-title', 'ann');
-  await wait(1700);
+  sfx('start');
+  await new Promise(r => { const a = voice('ann-title', 'ann'); a.onended = r; a.onerror = r; setTimeout(r, 6000); });   // let him finish
+  await wait(350);
   $('start').style.display = 'none';
   $('skip').style.display = 'block';
   if (JUMP) { playMusic(null); startGame(clamp(JUMP, 1, MISSIONS.length) - 1); return; }
@@ -140,7 +144,7 @@ $('start').onclick = async () => {
   $('skip').style.display = 'none';
   say('vo-9');
   await anyPress(); if (!skipped) startGame();
-};
+}
 $('skip').onclick = () => { if (curAudio) curAudio.pause(); playMusic(null); startGame(); };
 
 // ---------- input ----------
