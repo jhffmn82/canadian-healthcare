@@ -279,9 +279,8 @@ function target(pred, range) {
   for (const p of S.people) {
     if (!pred(p)) continue;
     const dx = (p.x - P.x) * P.dir, dy = Math.abs(p.y - P.y);
-    if (dx < -10 || dx > range || dy > 58) continue;
-    const score = Math.max(dx, 0) + dy * 4;
-    if (score < bd) { bd = score; best = p; }
+    if (dx < 20 || dx > range || dy > 36) continue;   // only in front, along her line of fire
+    if (dx < bd) { bd = dx; best = p; }               // the first body in the path takes the shot
   }
   return best;
 }
