@@ -187,16 +187,16 @@ const NPCV = { c2: 'm2', c3: 'f1', c4: 'm3', c5: 'fo', c6: 'm1', c7: 'm3', c8: '
 const say4 = (q, line) => talk(`npc/${NPCV[q.c] || 'm2'}-${line}`);
 const GEAR = ['c25', 'c26', 'c28', 'c32'];          // helmets and goggles hide symptoms
 const MISSIONS = [
-  { map: 'street', name: 'MAIN STREET', sick: 3, time: 90, brief: 'b1', text: "Provider. Mission briefing. Three citizens on Main Street have tested positive. They do not know it yet. Scan the crowd, locate the cases, close their files. Healthy taxpayers are not to be touched. It is not a cost. It is compassion." },
-  { map: 'street2', name: 'RUSH HOUR', sick: 4, time: 80, crowd: 85, pace: 1.35, brief: 'b2', text: "Rush hour, Provider. Eighty-five commuters, four cases, all of them moving fast. Faster than the surgical waitlist, at any rate. Stay sharp. Fire only on what the scanner confirms." },
-  { map: 'rink', name: 'HOCKEY NIGHT', sick: 3, time: 75, brief: 'b3', text: "Budget shortfall. We are going where the people are: the arena. Three players on the ice are positive. The game will not stop for you. Mind the enforcers. A healthy one costs the league a fortune." },
-  { map: 'rink2', name: 'PLAYOFFS', sick: 4, time: 75, lines: 22, brief: 'b4', text: "Playoffs. Both coaches are rolling two lines. Four cases between them. Every line change puts fresh faces on the ice, and your scans leave with the old ones. Keep count." },
-  { map: 'ski', name: 'APRES SKI', sick: 4, time: 85, gear: true, flee: 215, brief: 'b5', text: "The wealthy are hiding at the ski hill, Provider. Four cases at the bottom of the slope. Helmets and goggles will slow your scanner. Once flagged, they run. You will have to run faster." },
-  { map: 'ski2', name: 'WHITEOUT', sick: 5, time: 85, gear: true, flee: 215, storm: true, brief: 'b6', text: "Weather advisory: whiteout conditions. Visibility near zero. Scanner range cut in half. Five cases are somewhere in that snow. Command calls it a blizzard of savings." },
-  { map: 'depot', name: 'BORDER TOWN', sick: 4, time: 85, buses: [4190], flee: 160, brief: 'b7', text: "We have a leak. Four cases are at the bus depot, and that bus goes to Seattle. If they cross the border, they get treated. Intercept them before they board. That is an order." },
-  { map: 'depot2', name: 'LAST BUS', sick: 5, time: 85, buses: [845, 4190], flee: 170, brief: 'b8', text: "Last buses of the night. Two coaches, five cases, and every one of them has heard about American oncologists. Not one of them leaves this platform." },
-  { map: 'hill', name: 'QUESTION PERIOD', sick: 3, time: 90, press: true, boss: true, brief: 'b9', text: "Parliament Hill. Three cases among the staffers. The press is on site. If their camera sees you work, this ministry has never heard of you. Also, the Minister is due for his annual checkup. Scan him. Discreetly." },
-  { map: 'road', name: 'THE MOTORCADE', sick: 1, time: 60, chase: true, brief: 'b10', text: "Priority alert. The Minister scanned positive and is fleeing to a private clinic in Seattle. His motorcade is on the highway to the border. Take the bike. Stop that limo. Do not hit civilian vehicles, and dodge whatever his security throws." },
+  { map: 'street', name: 'MAIN STREET', fact: "The median wait from a GP referral to treatment in Canada is 30.7 weeks, the longest ever recorded.", src: "Fraser Institute, Waiting Your Turn 2026", sick: 3, time: 90, brief: 'b1', text: "Provider. Mission briefing. Three citizens on Main Street have tested positive. They do not know it yet. Scan the crowd, locate the cases, close their files. Healthy taxpayers are not to be touched. It is not a cost. It is compassion." },
+  { map: 'street2', name: 'RUSH HOUR', fact: "In a Commonwealth Fund survey, 80% of Americans saw a specialist within four weeks. In Canada: 41%.", src: "Commonwealth Fund survey, via KFF Health News", sick: 4, time: 80, crowd: 85, pace: 1.35, brief: 'b2', text: "Rush hour, Provider. Eighty-five commuters, four cases, all of them moving fast. Faster than the surgical waitlist, at any rate. Stay sharp. Fire only on what the scanner confirms." },
+  { map: 'rink', name: 'HOCKEY NIGHT', fact: "At least 23,746 Canadians died on a waiting list for surgery or a scan between April 2024 and March 2025.", src: "SecondStreet.org, 2025", sick: 3, time: 75, brief: 'b3', text: "Budget shortfall. We are going where the people are: the arena. Three players on the ice are positive. The game will not stop for you. Mind the enforcers. A healthy one costs the league a fortune." },
+  { map: 'rink2', name: 'PLAYOFFS', fact: "The US has about 38 MRI machines per million people. Canada has about 10, in the bottom quarter of the OECD.", src: "OECD data", sick: 4, time: 75, lines: 22, brief: 'b4', text: "Playoffs. Both coaches are rolling two lines. Four cases between them. Every line change puts fresh faces on the ice, and your scans leave with the old ones. Keep count." },
+  { map: 'ski', name: 'APRES SKI', fact: "Ovarian cancer, Kristin Logan's diagnosis: five-year survival is 43.4% in the US and 40.9% in Canada.", src: "CONCORD-3, The Lancet 2018", sick: 4, time: 85, gear: true, flee: 215, brief: 'b5', text: "The wealthy are hiding at the ski hill, Provider. Four cases at the bottom of the slope. Helmets and goggles will slow your scanner. Once flagged, they run. You will have to run faster." },
+  { map: 'ski2', name: 'WHITEOUT', fact: "Diagnosed with prostate cancer, a Canadian is about 2.5 times as likely as an American to die of it within five years (6.4% vs 2.6%). For breast cancer and melanoma: about 1.2 times.", src: "CONCORD-3, The Lancet 2018 (diagnosed 2010-14)", sick: 5, time: 85, gear: true, flee: 215, storm: true, brief: 'b6', text: "Weather advisory: whiteout conditions. Visibility near zero. Scanner range cut in half. Five cases are somewhere in that snow. Command calls it a blizzard of savings." },
+  { map: 'depot', name: 'BORDER TOWN', fact: "An estimated 105,529 Canadians left the country for medical treatment in 2025, up 66% in a decade.", src: "Fraser Institute, Leaving Canada for Medical Care 2026", sick: 4, time: 85, buses: [4190], flee: 160, brief: 'b7', text: "We have a leak. Four cases are at the bus depot, and that bus goes to Seattle. If they cross the border, they get treated. Intercept them before they board. That is an order." },
+  { map: 'depot2', name: 'LAST BUS', fact: "A new cancer drug takes a median 581 days to be publicly funded in Canada, against 382 days across 20 comparable countries.", src: "Current Oncology, 2024 review", sick: 5, time: 85, buses: [845, 4190], flee: 170, brief: 'b8', text: "Last buses of the night. Two coaches, five cases, and every one of them has heard about American oncologists. Not one of them leaves this platform." },
+  { map: 'hill', name: 'QUESTION PERIOD', fact: "16,499 Canadians died by MAID in 2024, about one in twenty deaths. Cancer was the underlying condition in 63.6% of them.", src: "Health Canada, Sixth Annual Report on MAID, 2025", sick: 3, time: 90, press: true, boss: true, brief: 'b9', text: "Parliament Hill. Three cases among the staffers. The press is on site. If their camera sees you work, this ministry has never heard of you. Also, the Minister is due for his annual checkup. Scan him. Discreetly." },
+  { map: 'road', name: 'THE MOTORCADE', fact: "The Parliamentary Budget Officer estimated expanded MAID would cut health-care costs by about $149 million a year.", src: "PBO, Cost Estimate for Bill C-7, 2020", sick: 1, time: 60, chase: true, brief: 'b10', text: "Priority alert. The Minister scanned positive and is fleeing to a private clinic in Seattle. His motorcade is on the highway to the border. Take the bike. Stop that limo. Do not hit civilian vehicles, and dodge whatever his security throws." },
 ];
 let music = null;
 function playMusic(name, vol = 0.45) {
@@ -938,11 +938,21 @@ function drawBrief() {
   g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(0, 0, VW, 52);
   g.font = font(14); g.fillStyle = '#ff2a3a'; g.fillText(`MISSION ${MI + 1}: ${m.name}`, 24, 10); g.textAlign = 'right'; g.fillStyle = '#aaa'; g.font = font(9); g.fillText('MINISTRY BRIEFING OFFICER', VW - 24, 14); g.textAlign = 'left';
   g.font = font(10); g.fillStyle = '#ffd23a'; g.fillText(`CASES HIDING HERE: ${m.sick}   TIME: ${m.time}s   SHOOT ONLY THE SICK`, 24, 33);
-  box(414, 118);
-  g.font = font(10); g.fillStyle = '#fff';
+  g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(20, 414, 560, 118); g.strokeStyle = '#ffd23a'; g.lineWidth = 3; g.strokeRect(20, 414, 560, 118);
+  if (m.fact) {                                  // a real fact, sourced, in a bubble beside the briefing
+    const bx = 596, by = 400, bw = 344, bh = 132;
+    g.fillStyle = '#fff6d8'; g.strokeStyle = '#000'; g.lineWidth = 3;
+    g.beginPath(); g.roundRect(bx, by, bw, bh, 10); g.fill(); g.stroke();
+    g.beginPath(); g.moveTo(bx + 40, by); g.lineTo(bx + 60, by - 18); g.lineTo(bx + 76, by); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = '#fff6d8'; g.fillRect(bx + 42, by - 1, 32, 5);
+    g.font = font(9); g.textAlign = 'left'; g.textBaseline = 'top'; g.fillStyle = '#c0101e'; g.fillText('FACT', bx + 12, by + 10);
+    g.font = font(8); g.fillStyle = '#111'; wrapLines(m.fact, bw - 24).slice(0, 7).forEach((l, i) => g.fillText(l, bx + 12, by + 26 + i * 13));
+    g.font = font(6); g.fillStyle = '#666'; wrapLines('SOURCE: ' + m.src.toUpperCase(), bw - 24).slice(0, 2).forEach((l, i) => g.fillText(l, bx + 12, by + bh - 20 + i * 9));
+  }
+  g.font = font(9); g.fillStyle = '#fff';
   let left = n;
-  wrapLines(m.text, VW - 260).forEach((l, i) => { if (left > 0) g.fillText(l.slice(0, left), 124, 428 + i * 18); left -= l.length + 1; });
-  if (blinkSlow()) { g.fillStyle = '#ff2a3a'; g.font = font(10); g.textAlign = 'right'; g.fillText('PRESS START', VW - 120, 512); }
+  wrapLines(m.text, 520).forEach((l, i) => { if (left > 0) g.fillText(l.slice(0, left), 36, 426 + i * 16); left -= l.length + 1; });
+  if (blinkSlow()) { g.fillStyle = '#ff2a3a'; g.font = font(10); g.textAlign = 'right'; g.fillText('PRESS START', 570, 516); }
 }
 function drawResult() {
   cover(IMG['still-7'], 0.35);
