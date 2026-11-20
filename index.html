@@ -18,9 +18,9 @@
   #coin span { animation: blink 1s steps(1) infinite; }
   #coin small { color: var(--fg); font-size: .4em; }
   @keyframes blink { 50% { opacity: 0; } }
-  #start { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2em; cursor: pointer; text-align: center; }
+  #start { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 5%; cursor: pointer; text-align: center; background: #000 url(stills/title.jpg) center / cover no-repeat; }
   #start h1 { color: var(--hot); font-size: clamp(16px, 4.5vmin, 46px); text-shadow: 4px 4px 0 var(--gold); margin: 0; }
-  #start p { font-size: clamp(9px, 1.8vmin, 16px); animation: blink 1s steps(1) infinite; }
+  #start p { font-size: clamp(10px, 2.2vmin, 20px); animation: blink 1s steps(1) infinite; color: var(--gold); text-shadow: 3px 3px 0 #000; margin: 0; }
   #game { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; display: none; }
   #skip { position: absolute; top: 3%; right: 3%; font: inherit; font-size: clamp(8px, 1.4vmin, 13px); background: #000; color: #fff; border: 2px solid #fff; padding: .6em .8em; display: none; cursor: pointer; z-index: 5; }
   #pad { position: absolute; left: 0; right: 0; bottom: 0; display: none; justify-content: space-between; padding: 1.5%; pointer-events: none; z-index: 4; }
@@ -34,11 +34,11 @@
   <div id="cap"></div>
   <div id="card"><div id="tag"></div><div class="fact" id="fact"></div></div>
   <div id="coin"><span>INSERT COIN</span><small>PRESS START</small></div>
-  <div id="start"><h1>CANADIAN<br>HEALTHCARE</h1><p>PRESS START</p></div>
+  <div id="start"><p>PRESS START</p></div>
   <button id="skip">SKIP INTRO</button>
   <div id="pad">
     <div><button data-k="L">&#9664;</button><div style="flex-direction:column"><button data-k="U">&#9650;</button><button data-k="D">&#9660;</button></div><button data-k="R">&#9654;</button></div>
-    <div><button data-k="REF">REFER</button><button data-k="SCAN">SCAN</button><button data-k="FIRE">FIRE</button></div>
+    <div><button data-k="SCAN">SCAN</button><button data-k="FIRE">FIRE</button></div>
   </div>
 </div>
 <script>
@@ -59,12 +59,12 @@ let skipped = false, curAudio = null, talkAudio = null;
 
 // ---------- audio ----------
 let ctx;
-const VOICES = ["ann-chase", "ann-closed", "ann-detected", "ann-escaped", "ann-gameover", "ann-goal", "ann-hurry", "ann-line", "ann-malpractice", "ann-mission", "ann-noteligible", "ann-onair", "ann-quota", "ann-referral", "ann-scandal", "ann-target", "ann-time", "b1", "b10", "b2", "b3", "b4", "b5", "b6", "b7", "b8", "b9", "bark-1", "bark-2", "bark-3", "bark-4", "bark-5", "bark-6", "bark-7", "bark-8", "brief-10", "brief-2", "brief-4", "brief-6", "brief-7", "brief-8", "brief-9", "clear-1", "clear-2", "clear-3", "clear-4", "end-1", "end-2", "final-line", "flee-1", "flee-2", "flee-3", "flee-4", "flee-5", "min-1", "min-2", "min-3", "min-busted", "min-crash", "min-escape-boss", "min-escaped", "min-fail", "min-scandal", "min-win", "min-wrong", "ref-1", "ref-2", "ref-3", "taunt-1", "taunt-2", "taunt-3", "taunt-4", "vo-1", "vo-2", "vo-3", "vo-4", "vo-5", "vo-6", "vo-7", "vo-8", "vo-9"];
+const VOICES = ["ann-chase", "ann-closed", "ann-detected", "ann-escaped", "ann-gameover", "ann-goal", "ann-hurry", "ann-line", "ann-malpractice", "ann-mission", "ann-noteligible", "ann-onair", "ann-quota", "ann-scandal", "ann-target", "ann-time", "b1", "b10", "b2", "b3", "b4", "b5", "b6", "b7", "b8", "b9", "bark-1", "bark-2", "bark-3", "bark-4", "bark-5", "bark-6", "bark-7", "bark-8", "brief-10", "brief-2", "brief-4", "brief-6", "brief-7", "brief-8", "brief-9", "clear-1", "clear-2", "clear-3", "clear-4", "end-1", "end-2", "final-line", "flee-1", "flee-2", "flee-3", "flee-4", "flee-5", "min-1", "min-2", "min-3", "min-busted", "min-crash", "min-escape-boss", "min-escaped", "min-fail", "min-scandal", "min-win", "min-wrong", "npc/f1-bark-1", "npc/f1-bark-2", "npc/f1-bark-3", "npc/f1-bark-4", "npc/f1-bark-5", "npc/f1-bark-6", "npc/f1-bark-7", "npc/f1-bark-8", "npc/f1-clear-1", "npc/f1-clear-2", "npc/f1-clear-3", "npc/f1-clear-4", "npc/f1-flee-1", "npc/f1-flee-2", "npc/f1-flee-3", "npc/f1-flee-4", "npc/f1-flee-5", "npc/f1-flee-bus", "npc/f2-bark-1", "npc/f2-bark-2", "npc/f2-bark-3", "npc/f2-bark-4", "npc/f2-bark-5", "npc/f2-bark-6", "npc/f2-bark-7", "npc/f2-bark-8", "npc/f2-clear-1", "npc/f2-clear-2", "npc/f2-clear-3", "npc/f2-clear-4", "npc/f2-flee-1", "npc/f2-flee-2", "npc/f2-flee-3", "npc/f2-flee-4", "npc/f2-flee-5", "npc/f2-flee-bus", "npc/fo-bark-1", "npc/fo-bark-2", "npc/fo-bark-3", "npc/fo-bark-4", "npc/fo-bark-5", "npc/fo-bark-6", "npc/fo-bark-7", "npc/fo-bark-8", "npc/fo-clear-1", "npc/fo-clear-2", "npc/fo-clear-3", "npc/fo-clear-4", "npc/fo-flee-1", "npc/fo-flee-2", "npc/fo-flee-3", "npc/fo-flee-4", "npc/fo-flee-5", "npc/fo-flee-bus", "npc/m1-bark-1", "npc/m1-bark-2", "npc/m1-bark-3", "npc/m1-bark-4", "npc/m1-bark-5", "npc/m1-bark-6", "npc/m1-bark-7", "npc/m1-bark-8", "npc/m1-clear-1", "npc/m1-clear-2", "npc/m1-clear-3", "npc/m1-clear-4", "npc/m1-flee-1", "npc/m1-flee-2", "npc/m1-flee-3", "npc/m1-flee-4", "npc/m1-flee-5", "npc/m1-flee-bus", "npc/m2-bark-1", "npc/m2-bark-2", "npc/m2-bark-3", "npc/m2-bark-4", "npc/m2-bark-5", "npc/m2-bark-6", "npc/m2-bark-7", "npc/m2-bark-8", "npc/m2-clear-1", "npc/m2-clear-2", "npc/m2-clear-3", "npc/m2-clear-4", "npc/m2-flee-1", "npc/m2-flee-2", "npc/m2-flee-3", "npc/m2-flee-4", "npc/m2-flee-5", "npc/m2-flee-bus", "npc/m3-bark-1", "npc/m3-bark-2", "npc/m3-bark-3", "npc/m3-bark-4", "npc/m3-bark-5", "npc/m3-bark-6", "npc/m3-bark-7", "npc/m3-bark-8", "npc/m3-clear-1", "npc/m3-clear-2", "npc/m3-clear-3", "npc/m3-clear-4", "npc/m3-flee-1", "npc/m3-flee-2", "npc/m3-flee-3", "npc/m3-flee-4", "npc/m3-flee-5", "npc/m3-flee-bus", "npc/mo-bark-1", "npc/mo-bark-2", "npc/mo-bark-3", "npc/mo-bark-4", "npc/mo-bark-5", "npc/mo-bark-6", "npc/mo-bark-7", "npc/mo-bark-8", "npc/mo-clear-1", "npc/mo-clear-2", "npc/mo-clear-3", "npc/mo-clear-4", "npc/mo-flee-1", "npc/mo-flee-2", "npc/mo-flee-3", "npc/mo-flee-4", "npc/mo-flee-5", "npc/mo-flee-bus", "taunt-1", "taunt-2", "taunt-3", "taunt-4", "vo-1", "vo-2", "vo-3", "vo-4", "vo-5", "vo-6", "vo-7", "vo-8", "vo-9"];
 const BUF = {}, CH = {}; let vGain, speaking = 0;
 function loadVoice(name) {
   return BUF[name] || (BUF[name] = fetch(`vo/${name}.mp3`).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)));
 }
-function preloadVoices() { let i = 0; const next = () => { if (i < VOICES.length) loadVoice(VOICES[i++]).finally(next); }; for (let k = 0; k < 4; k++) next(); }
+function preloadVoices() { let i = 0; const next = () => { if (i < VOICES.length) loadVoice(VOICES[i++]).catch(() => {}).finally(next); }; for (let k = 0; k < 4; k++) next(); }
 // one line per channel ('ann' announcer, 'talk' characters, 'intro' narrator): a new line stops the old one
 function voice(name, ch = 'ann') {
   const h = { onended: null, onerror: null, done: false, pause() { this.stopped = true; if (this.src) { try { this.src.stop(); } catch (e) {} } else this.finish(); },
@@ -134,7 +134,7 @@ $('skip').onclick = () => { if (curAudio) curAudio.pause(); playMusic(null); sta
 const keys = {}; let pressed = null;
 const KEYMAP = { ArrowLeft: 'L', a: 'L', A: 'L', ArrowRight: 'R', d: 'R', D: 'R', ArrowUp: 'U', w: 'U', W: 'U', ArrowDown: 'D', s: 'D', S: 'D', ' ': 'SCAN', f: 'FIRE', F: 'FIRE', j: 'FIRE', Enter: 'FIRE', r: 'REF', R: 'REF', k: 'REF' };
 function press() { if (pressed) { const p = pressed; pressed = null; p(); } }
-function keyDown(k) { if (!keys[k] && mode === 'play') { if (k === 'FIRE') (S.m.chase ? chaseFire : fire)(); if (k === 'REF' && !S.m.chase) refer(); } keys[k] = true; }
+function keyDown(k) { if (!keys[k] && mode === 'play') { if (k === 'FIRE') (S.m.chase ? chaseFire : fire)(); } keys[k] = true; }
 addEventListener('keydown', e => { const k = KEYMAP[e.key]; if (k) { keyDown(k); e.preventDefault(); } press(); });
 addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
 const anyPress = () => new Promise(r => setTimeout(() => { pressed = r; }, 400));
@@ -158,22 +158,33 @@ const MAPS = {
   ski: { panels: ['sk-1', 'sk-2', 'sk-3'], order: [0, 1, 2, 0], top: 450, bot: 512, crowd: 55, cast: range(25, 32), music: 'ski' },
   depot: { panels: ['dp-1', 'dp-2', 'dp-3'], order: [0, 1, 2], top: 440, bot: 512, crowd: 50, cast: ['c33', 'c34', 'c35', 'c33', 'c34', 'c35', ...range(2, 17)], music: 'street' },
   road: { panels: ['hw-1', 'hw-2', 'hw-3'], order: [0, 1, 2], lanes: [330, 392, 454, 516], music: 'chase' },
+  street2: { panels: ['fd-1', 'fd-2', 'fd-3'], order: [0, 1, 2, 0], top: 440, bot: 508, crowd: 60, cast: range(2, 17), music: 'street' },
+  rink2: { panels: ['pr-1', 'pr-2', 'pr-3'], order: [0, 1, 2], top: 352, bot: 505, music: 'hockey', hockey: true, goalL: 180, goalR: 4680, goalY: 420 },
+  ski2: { panels: ['sv-1', 'sv-2', 'sv-3'], order: [0, 1, 2, 0], top: 450, bot: 512, crowd: 55, cast: range(25, 32), music: 'ski' },
+  depot2: { panels: ['dn-1', 'dn-2', 'dn-3'], order: [0, 1, 2], top: 440, bot: 512, crowd: 50, cast: ['c33', 'c34', 'c35', 'c33', 'c34', 'c35', ...range(2, 17)], music: 'street' },
   hill: { panels: ['pl-1', 'pl-2', 'pl-3'], order: [0, 1, 2], top: 460, bot: 514, crowd: 48, cast: ['c36', 'c37', 'c36', 'c37', 'c2', 'c8', 'c9', 'c15', 'c3', 'c11'], music: 'title', limo: 3560 },
 };
 const PANELS = {}; for (const m of Object.values(MAPS)) for (const p of m.panels) PANELS[p] = img(`art/${p}.jpg`);
+const BRIEFS = []; for (let i = 1; i <= 10; i++) BRIEFS.push(img(`stills/brief-${i}.jpg`));
 const PW = 1620;
 let MAP = MAPS.street, WORLD = 0, TOP = 0, BOT = 0;
 let A = null;   // atlas frames
+// the voice that fits each person: m1 young man, m2 deep man, m3 gruff man, mo older man, f1 young woman, f2 woman, fo older woman
+const NPCV = { c2: 'm2', c3: 'f1', c4: 'm3', c5: 'fo', c6: 'm1', c7: 'm3', c8: 'f2', c9: 'mo', c10: 'f1', c11: 'm1', c12: 'f2', c13: 'm1',
+  c14: 'f1', c15: 'f2', c16: 'm2', c17: 'mo', c18: 'm1', c19: 'm3', c20: 'm1', c21: 'm1', c22: 'm2', c23: 'm2', c24: 'm2', c25: 'f1',
+  c26: 'm1', c27: 'm2', c28: 'f2', c29: 'mo', c30: 'f1', c31: 'm3', c32: 'f2', c33: 'f2', c34: 'mo', c35: 'm1', c36: 'f2', c37: 'mo',
+  c38: 'f2', c39: 'm1', c40: 'm3' };
+const say4 = (q, line) => talk(`npc/${NPCV[q.c] || 'm2'}-${line}`);
 const GEAR = ['c25', 'c26', 'c28', 'c32'];          // helmets and goggles hide symptoms
 const MISSIONS = [
   { map: 'street', name: 'MAIN STREET', sick: 3, time: 90, brief: 'b1', text: "Provider. Mission briefing. Three citizens on Main Street have tested positive. They do not know it yet. Scan the crowd, locate the cases, close their files. Healthy taxpayers are not to be touched. It is not a cost. It is compassion." },
-  { map: 'street', name: 'RUSH HOUR', sick: 4, time: 80, crowd: 85, pace: 1.35, brief: 'b2', text: "Rush hour, Provider. Eighty-five commuters, four cases, all of them moving fast. Faster than the surgical waitlist, at any rate. Stay sharp. Fire only on what the scanner confirms." },
+  { map: 'street2', name: 'RUSH HOUR', sick: 4, time: 80, crowd: 85, pace: 1.35, brief: 'b2', text: "Rush hour, Provider. Eighty-five commuters, four cases, all of them moving fast. Faster than the surgical waitlist, at any rate. Stay sharp. Fire only on what the scanner confirms." },
   { map: 'rink', name: 'HOCKEY NIGHT', sick: 3, time: 75, brief: 'b3', text: "Budget shortfall. We are going where the people are: the arena. Three players on the ice are positive. The game will not stop for you. Mind the enforcers. A healthy one costs the league a fortune." },
-  { map: 'rink', name: 'PLAYOFFS', sick: 4, time: 75, lines: 22, brief: 'b4', text: "Playoffs. Both coaches are rolling two lines. Four cases between them. Every line change puts fresh faces on the ice, and your scans leave with the old ones. Keep count." },
+  { map: 'rink2', name: 'PLAYOFFS', sick: 4, time: 75, lines: 22, brief: 'b4', text: "Playoffs. Both coaches are rolling two lines. Four cases between them. Every line change puts fresh faces on the ice, and your scans leave with the old ones. Keep count." },
   { map: 'ski', name: 'APRES SKI', sick: 4, time: 85, gear: true, flee: 215, brief: 'b5', text: "The wealthy are hiding at the ski hill, Provider. Four cases at the bottom of the slope. Helmets and goggles will slow your scanner. Once flagged, they run. You will have to run faster." },
-  { map: 'ski', name: 'WHITEOUT', sick: 5, time: 85, gear: true, flee: 215, storm: true, brief: 'b6', text: "Weather advisory: whiteout conditions. Visibility near zero. Scanner range cut in half. Five cases are somewhere in that snow. Command calls it a blizzard of savings." },
+  { map: 'ski2', name: 'WHITEOUT', sick: 5, time: 85, gear: true, flee: 215, storm: true, brief: 'b6', text: "Weather advisory: whiteout conditions. Visibility near zero. Scanner range cut in half. Five cases are somewhere in that snow. Command calls it a blizzard of savings." },
   { map: 'depot', name: 'BORDER TOWN', sick: 4, time: 85, buses: [4190], flee: 160, brief: 'b7', text: "We have a leak. Four cases are at the bus depot, and that bus goes to Seattle. If they cross the border, they get treated. Intercept them before they board. That is an order." },
-  { map: 'depot', name: 'LAST BUS', sick: 5, time: 85, buses: [845, 4190], flee: 170, brief: 'b8', text: "Last buses of the night. Two coaches, five cases, and every one of them has heard about American oncologists. Not one of them leaves this platform." },
+  { map: 'depot2', name: 'LAST BUS', sick: 5, time: 85, buses: [845, 4190], flee: 170, brief: 'b8', text: "Last buses of the night. Two coaches, five cases, and every one of them has heard about American oncologists. Not one of them leaves this platform." },
   { map: 'hill', name: 'QUESTION PERIOD', sick: 3, time: 90, press: true, boss: true, brief: 'b9', text: "Parliament Hill. Three cases among the staffers. The press is on site. If their camera sees you work, this ministry has never heard of you. Also, the Minister is due for his annual checkup. Scan him. Discreetly." },
   { map: 'road', name: 'THE MOTORCADE', sick: 1, time: 60, chase: true, brief: 'b10', text: "Priority alert. The Minister scanned positive and is fleeing to a private clinic in Seattle. His motorcade is on the highway to the border. Take the bike. Stop that limo. Do not hit civilian vehicles, and dodge whatever his security throws." },
 ];
@@ -219,7 +230,7 @@ function mkPerson(x, c) {
 function play() {
   const m = MISSIONS[MI];
   MAP = MAPS[m.map]; WORLD = PW * MAP.order.length; TOP = MAP.top; BOT = MAP.bot;
-  S = { m, t: m.time, found: 0, closed: 0, saved: 0, referred: 0, refs: 1, p: { x: MAP.hockey ? WORLD / 2 - 500 : 400, y: (TOP + BOT) / 2, dir: 1, walk: 0, gunT: 0 }, people: [], picks: [], floats: [], tracer: null, bullets: [], verdicts: [], sparks: [], muzzle: null, pickT: 8, scanT: null, flash: 0, fireCd: 0, hum: 0, clock: 0, lastDet: -9, score: [0, 0], hurry: false };
+  S = { m, t: m.time, found: 0, closed: 0, saved: 0, referred: 0, refs: 1, p: { x: MAP.hockey ? WORLD / 2 - 500 : 400, y: (TOP + BOT) / 2, dir: 1, walk: 0, gunT: 0 }, people: [], picks: [], floats: [], tracer: null, strikes: 0, bullets: [], verdicts: [], sparks: [], muzzle: null, pickT: 8, scanT: null, flash: 0, fireCd: 0, hum: 0, clock: 0, lastDet: -9, score: [0, 0], hurry: false };
   if (m.chase) { setupChase(); mode = 'play'; voice('ann-chase'); playMusic('chase', 0.45); return; }
   if (MAP.hockey) setupHockey();
   else {
@@ -306,16 +317,26 @@ function bulletHits(q, b) {
   if (q.boss) { float('BLOCKED BY SECURITY!', q.x, q.y - 160, '#ffd23a'); tone(300, 0.1); return; }
   q.state = 'dead'; q.dt = 0; q.flashT = 0.18; q.fall = b.dir; q.bubble = null;
   if (seenByCamera(q)) { float('ON LIVE TV!', q.x, q.y - 160, '#ff4a5a'); endMission(false, 'scandal'); return; }
-  if (q.sick) { const k = Math.random() * BARKS.length | 0; q.bubble = { text: BARKS[k], t: 3.2 }; setTimeout(() => talk(`bark-${k + 1}`), 300); }
+  if (q.sick) { const k = Math.random() * BARKS.length | 0; q.bubble = { text: BARKS[k], t: 3.2 }; setTimeout(() => say4(q, `bark-${k + 1}`), 300); }
   S.verdicts.push({ q, t: 1.1 });
 }
 function verdict(q) {
-  if (!q.sick) { float('HEALTHY TAXPAYER!', q.x, q.y - 160, '#ff4a5a'); tone(220, 0.5, 'sawtooth', 0.12); S.wrongT = 0.9; return; }
+  if (!q.sick) { strike(q.x, q.y - 160, 'HEALTHY TAXPAYER!'); return; }
   S.closed++; S.found += q.detected ? 0 : 1;
   const amt = Math.round(40 + Math.random() * 80) * 1000; S.saved += amt;
   float('FILE CLOSED', q.x, q.y - 172, '#ffd23a');
   float('+' + money(amt) + ' SAVED', q.x, q.y - 150, '#7aff9a');
   tone(660, 0.1, 'triangle'); setTimeout(() => tone(990, 0.15, 'triangle'), 100);
+}
+function strike(x, y, what) {
+  S.strikes++;
+  float(what, x, y, '#ff4a5a'); tone(220, 0.5, 'sawtooth', 0.12);
+  if (S.strikes >= 3) { S.wrongT = 0.9; return; }
+  float(`MALPRACTICE ${S.strikes}/3`, x, y + 24, '#ffd23a'); voice('ann-malpractice');
+}
+function drawStrikes(x, y) {
+  g.font = font(9); g.textAlign = 'left'; g.textBaseline = 'top'; g.fillStyle = '#ff9a9a'; g.fillText('MALPRACTICE', x, y);
+  for (let i = 0; i < 3; i++) { g.fillStyle = i < S.strikes ? '#ff2a3a' : '#333'; g.fillRect(x + 118 + i * 18, y - 1, 13, 13); }
 }
 function updateShots(dt) {
   for (const b of S.bullets) {
@@ -352,18 +373,6 @@ function drawShots(cam) {
     for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; g.beginPath(); g.moveTo(k.x - cam + Math.cos(a) * r * 0.4, k.y + Math.sin(a) * r * 0.4); g.lineTo(k.x - cam + Math.cos(a) * r, k.y + Math.sin(a) * r); g.stroke(); }
   }
 }
-function refer() {
-  const P = S.p, q = target(p => p.state === 'run' && p.detected, 140);
-  if (!q) return;
-  if (S.refs <= 0) { float('NO REFERRAL FORMS', P.x, P.y - 160, '#ff4a5a'); tone(200, 0.15); return; }
-  S.refs--; S.referred++;
-  q.state = 'referred'; q.sp = 30; q.dir = Math.random() < 0.5 ? 1 : -1;
-  const i = Math.random() * REFS.length | 0;
-  q.bubble = { text: REFS[i], t: 3 }; talk(`ref-${i + 1}`);
-  float('REFERRAL FILED', q.x, q.y - 172, '#7ae0ff');
-  float('WAIT: 14 MONTHS', q.x, q.y - 150, '#fff');
-  tone(660, 0.1); setTimeout(() => tone(990, 0.15), 100);
-}
 function detect(q) {
   q.detected = true; q.state = 'run'; q.sp = (S.m.flee || 150) + Math.random() * 30; q.dir = q.x > S.p.x ? 1 : -1; S.found++;
   if (S.m.buses) { q.door = S.m.buses.reduce((a, b) => Math.abs(b - q.x) < Math.abs(a - q.x) ? b : a); q.dir = Math.sign(q.door - q.x) || 1; }
@@ -372,7 +381,7 @@ function detect(q) {
   float('MALIGNANCY DETECTED', q.x, q.y - 160, '#ff4a5a');
   const i = Math.random() * FLEES.length | 0;
   if (q.boss) q.bubble = { text: 'I have private insurance! Get the car!', t: 3 };
-  else { q.bubble = { text: q.door ? 'To the bus! To Seattle!' : FLEES[i], t: 2.6 }; talk(`flee-${i + 1}`); }
+  else { q.bubble = { text: q.door ? 'To the bus! To Seattle!' : FLEES[i], t: 2.6 }; say4(q, q.door ? 'flee-bus' : `flee-${i + 1}`); }
 }
 function update(dt) {
   if (S.m.chase) return updateChase(dt);
@@ -397,7 +406,7 @@ function update(dt) {
         if (q.sick) detect(q);
         else {
           tone(660, 0.08, 'triangle'); setTimeout(() => tone(1320, 0.12, 'triangle'), 80);
-          if (Math.random() < 0.35) { const i = Math.random() * CLEARS.length | 0; q.bubble = { text: CLEARS[i], t: 2.5 }; talk(`clear-${i + 1}`); }
+          if (Math.random() < 0.35) { const i = Math.random() * CLEARS.length | 0; q.bubble = { text: CLEARS[i], t: 2.5 }; say4(q, `clear-${i + 1}`); }
         }
       }
     }
@@ -419,10 +428,10 @@ function update(dt) {
   if (MAP.hockey) updateHockey(dt);
   if (!S.hurry && S.t < 30) { S.hurry = true; voice('ann-hurry'); }
 
-  if ((S.pickT -= dt) <= 0) { S.pickT = 10 + Math.random() * 8; S.picks.push({ x: clamp(P.x + (Math.random() < 0.5 ? -1 : 1) * (200 + Math.random() * 300), 60, WORLD - 60), y: TOP + Math.random() * (BOT - TOP) }); }
+  if ((S.pickT -= dt) <= 0) { S.pickT = 12 + Math.random() * 8; S.picks.push({ x: clamp(P.x + (Math.random() < 0.5 ? -1 : 1) * (200 + Math.random() * 300), 60, WORLD - 60), y: TOP + Math.random() * (BOT - TOP), life: 14 }); }
   S.picks = S.picks.filter(k => {
-    if (Math.abs(k.x - P.x) < 30 && Math.abs(k.y - P.y) < 24 && S.refs < 3) { S.refs++; tone(990, 0.08, 'triangle'); setTimeout(() => tone(1480, 0.1, 'triangle'), 70); float('+1 REFERRAL FORM', k.x, k.y - 90, '#7ae0ff'); return false; }
-    return true;
+    if (Math.abs(k.x - P.x) < 34 && Math.abs(k.y - P.y) < 26) { S.t += 10; tone(990, 0.08, 'triangle'); setTimeout(() => tone(1480, 0.1, 'triangle'), 70); float('+10 SECONDS', k.x, k.y - 90, '#7aff9a'); return false; }
+    return (k.life -= dt) > 0;
   });
   for (const f of S.floats) f.t += dt;
   S.floats = S.floats.filter(f => f.t < 1.8);
@@ -459,7 +468,7 @@ function setupChase() {
   S.van = { x: 0, lane: 2, y: LANES()[2], v: 620, hit: 0 };
   S.limo = { kind: 'limo', x: 900, lane: 1, y: LANES()[1], v: 640, hp: 6, flash: 0, slow: 0, next: 2, spin: 0 };
   S.suv = { kind: 'suv', x: 560, lane: 2, y: LANES()[2], v: 640 };
-  S.cars = []; S.spawn = 0.5; S.taunt = 4; S.shake = 0; S.over = false; S.junk = []; S.throwT = 3; S.bullets = []; S.verdicts = []; S.sparks = []; S.muzzle = null;
+  S.cars = []; S.strikes = 0; S.spawn = 0.5; S.taunt = 4; S.shake = 0; S.over = false; S.junk = []; S.throwT = 3; S.bullets = []; S.verdicts = []; S.sparks = []; S.muzzle = null;
   S.p = { x: 0, y: 0, dir: 1, walk: 0, gunT: 0 };
 }
 function laneBlocked(lane, x, len) { return S.cars.some(c => c.lane === lane && c.x > x - 60 && c.x < x + len + 120); }
@@ -546,7 +555,7 @@ function chaseHit(c, b) {
   S.sparks.push({ x: b.x, y: b.y + (c.y - b.depth) * 0.5, t: 0.3 });
   if (c !== S.limo) {
     c.flash = 0.18; tone(140, 0.12, 'square', 0.15);
-    S.verdicts.push({ t: 0.8, run: () => { float(c.kind === 'suv' ? 'SECURITY DETAIL HIT!' : 'CIVILIAN HIT!', c.x + 100, c.y - 150, '#ff4a5a'); S.wrongT = 0.9; } });
+    S.verdicts.push({ t: 0.8, run: () => strike(c.x + 100, c.y - 150, c.kind === 'suv' ? 'SECURITY DETAIL HIT!' : 'CIVILIAN HIT!') });
     return;
   }
   const L = S.limo; L.hp--; L.flash = 0.15; L.slow = 0.9; tone(1400, 0.05, 'square', 0.12);
@@ -617,6 +626,7 @@ function drawChase() {
   g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(0, 0, VW, 54);
   g.font = font(12); g.textBaseline = 'top'; g.textAlign = 'left'; g.fillStyle = '#ff2a3a'; g.fillText('M10 THE MOTORCADE', 16, 10);
   g.font = font(9); g.fillStyle = '#7aff9a'; g.fillText(`US BORDER IN ${(secs * 0.33).toFixed(1)} KM`, 16, 34);
+  g.fillStyle = 'rgba(0,0,0,.75)'; g.fillRect(0, 54, 190, 22); drawStrikes(12, 60);
   g.fillStyle = 'rgba(0,0,0,.9)'; g.fillRect(VW / 2 - 92, 0, 184, 74); g.strokeStyle = S.t < 20 ? '#ff2a3a' : '#ffd23a'; g.lineWidth = 3; g.strokeRect(VW / 2 - 92, 1, 184, 72);
   g.font = font(28); g.textAlign = 'center'; g.fillStyle = S.t < 20 && Math.floor(performance.now() / 300) % 2 ? '#ff2a3a' : '#fff';
   g.fillText(`${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`, VW / 2, 14);
@@ -729,7 +739,7 @@ function personFrame(p) {
 function playerFrame() {
   const a = A.c1, P = S.p;
   if (P.gunT > 0) return a.aim[0];
-  if (keys.SCAN) return a.scan[0];
+  if (keys.SCAN) return (keys.L || keys.R || keys.U || keys.D) && a.scanwalk ? a.scanwalk[Math.floor(P.walk * 9) % 4] : a.scan[0];
   if (keys.L || keys.R || keys.U || keys.D) return a.walk[Math.floor(P.walk * 9) % 4];
   return a.idle[0];
 }
@@ -755,11 +765,17 @@ function drawPlay() {
   const first = Math.floor(cam / PW);
   for (let i = first; i <= first + 1 && i < MAP.order.length; i++) g.drawImage(PANELS[MAP.panels[MAP.order[i]]], Math.round(i * PW - cam), 0, PW, VH);
   g.save(); g.translate(-Math.round(cam), 0);
-  for (const k of S.picks) {
-    const y = k.y - 14 + Math.sin(S.clock * 4 + k.x) * 3;
-    g.fillStyle = '#000'; g.fillRect(k.x - 15, y - 12, 30, 24);
-    g.fillStyle = '#e8c070'; g.fillRect(k.x - 13, y - 10, 26, 20); g.fillRect(k.x - 13, y - 14, 10, 4);
-    g.fillStyle = '#c0392b'; g.fillRect(k.x - 2, y - 6, 4, 12); g.fillRect(k.x - 6, y - 2, 12, 4);
+  for (const k of S.picks) {                    // an alarm clock: +10 seconds; it blinks before it's gone
+    if (k.life < 3 && Math.floor(k.life * 6) % 2) continue;
+    const x = k.x, y = k.y - 20 + Math.sin(S.clock * 4 + k.x) * 3;
+    g.fillStyle = '#000'; g.beginPath(); g.arc(x - 11, y - 14, 8, 0, 7); g.arc(x + 11, y - 14, 8, 0, 7); g.fill();
+    g.fillStyle = '#d42a2a'; g.beginPath(); g.arc(x - 11, y - 14, 6, 0, 7); g.arc(x + 11, y - 14, 6, 0, 7); g.fill();
+    g.fillStyle = '#000'; g.fillRect(x - 13, y + 8, 6, 8); g.fillRect(x + 7, y + 8, 6, 8);
+    g.beginPath(); g.arc(x, y, 17, 0, 7); g.fill();
+    g.fillStyle = '#d42a2a'; g.beginPath(); g.arc(x, y, 15, 0, 7); g.fill();
+    g.fillStyle = '#fff6e0'; g.beginPath(); g.arc(x, y, 11, 0, 7); g.fill();
+    g.strokeStyle = '#000'; g.lineWidth = 2; g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - 8); g.moveTo(x, y); g.lineTo(x + 6, y + 2); g.stroke();
+    g.font = font(8); g.textAlign = 'center'; g.textBaseline = 'top'; g.fillStyle = '#7aff9a'; g.fillText('+10', x, y + 20);
   }
   for (const d of S.m.buses || []) g.drawImage(IMG.bus, d - IMG.bus.width * 0.82, TOP - 268);
   const crew = S.crew && alive(S.crew) ? S.crew : null;
@@ -828,7 +844,8 @@ function drawPlay() {
   g.fillText(`${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`, VW / 2, 14);
   g.font = font(9); g.fillStyle = '#aaa'; g.fillText(MAP.hockey ? `RED ${S.score[0]}  -  ${S.score[1]} BLUE` : `SCANNED ${S.people.filter(p => p.scanned).length}/${S.people.length}`, VW / 2, 54);
   g.textAlign = 'left'; g.fillStyle = '#7aff9a'; g.fillText(`PROVINCE SAVED ${money(S.saved)}`, 16, 34);
-  g.textAlign = 'right'; g.fillStyle = '#7ae0ff'; g.fillText(`REFERRAL FORMS ${S.refs}`, VW - 16, 34);
+  g.fillStyle = 'rgba(0,0,0,.75)'; g.fillRect(0, 54, 190, 22); drawStrikes(12, 60);
+
   // radar
   const ry = VH - 14;
   g.fillStyle = 'rgba(0,0,0,.75)'; g.fillRect(0, ry - 4, VW, 18);
@@ -840,7 +857,7 @@ function drawPlay() {
   g.fillStyle = '#1abc9c'; g.fillRect(P.x / WORLD * VW - 3, ry - 3, 6, 16);
   if (MI === 0 && S.clock < 12) {
     g.textAlign = 'center'; g.font = font(10); g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(150, VH - 60, 660, 30);
-    g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.fillText('ARROWS MOVE   SPACE SCAN   F FIRE   R REFER', VW / 2, VH - 44);
+    g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.fillText('ARROWS MOVE   SPACE SCAN   F FIRE   CLOCKS +10 SEC', VW / 2, VH - 44);
   }
 }
 function cover(im, alpha = 1) {
@@ -853,17 +870,17 @@ function box(y, h) {
 }
 const blinkSlow = () => Math.floor(performance.now() / 500) % 2;
 function drawBrief() {
-  cover(IMG['still-3']);
+  cover(BRIEFS[MI] && BRIEFS[MI].naturalWidth ? BRIEFS[MI] : IMG['still-3']);
   const m = S.m, n = Math.floor((performance.now() - S.t0) / 45);
   g.textAlign = 'left'; g.textBaseline = 'top';
   g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(0, 0, VW, 52);
   g.font = font(14); g.fillStyle = '#ff2a3a'; g.fillText(`MISSION ${MI + 1}: ${m.name}`, 24, 10); g.textAlign = 'right'; g.fillStyle = '#aaa'; g.font = font(9); g.fillText('MINISTRY BRIEFING OFFICER', VW - 24, 14); g.textAlign = 'left';
   g.font = font(10); g.fillStyle = '#ffd23a'; g.fillText(`CASES HIDING HERE: ${m.sick}   TIME: ${m.time}s   SHOOT ONLY THE SICK`, 24, 33);
-  box(340, 168);
-  g.font = font(11); g.fillStyle = '#fff';
+  box(414, 118);
+  g.font = font(10); g.fillStyle = '#fff';
   let left = n;
-  wrapLines(m.text, VW - 260).forEach((l, i) => { if (left > 0) g.fillText(l.slice(0, left), 124, 358 + i * 21); left -= l.length + 1; });
-  if (blinkSlow()) { g.fillStyle = '#ff2a3a'; g.font = font(10); g.textAlign = 'right'; g.fillText('PRESS START', VW - 120, 484); }
+  wrapLines(m.text, VW - 260).forEach((l, i) => { if (left > 0) g.fillText(l.slice(0, left), 124, 428 + i * 18); left -= l.length + 1; });
+  if (blinkSlow()) { g.fillStyle = '#ff2a3a'; g.font = font(10); g.textAlign = 'right'; g.fillText('PRESS START', VW - 120, 512); }
 }
 function drawResult() {
   cover(IMG['still-7'], 0.35);
@@ -872,11 +889,10 @@ function drawResult() {
   const head = { wrong: 'MALPRACTICE!', escaped: 'ESCAPED!', scandal: 'SCANDAL!', time: 'TIME UP!' }[S.why];
   g.font = font(26); g.fillStyle = S.win ? '#ffd23a' : '#ff2a3a'; g.fillText(S.win ? 'ALL FILES CLOSED!' : head, VW / 2, 80);
   g.font = font(12); g.fillStyle = '#fff';
-  const why = { wrong: ['YOU SHOT A HEALTHY TAXPAYER.', 'THE PROVINCE LOSES THEIR TAX REVENUE.'], escaped: [S.bossOut ? 'THE MINISTER CROSSED THE BORDER.' : 'A PATIENT BOARDED THE BUS TO SEATTLE.', S.bossOut ? 'HE WILL BE TREATED IN A PRIVATE US CLINIC.' : 'THEY WILL BE TREATED IN THE UNITED STATES.'], scandal: ['THE CAMERA CAUGHT YOU ON LIVE TV.', 'THE MINISTER HAS NEVER MET YOU.'] }[S.why];
+  const why = { wrong: ['THREE HEALTHY TAXPAYERS. THREE STRIKES.', 'THE PROVINCE LOSES THEIR TAX REVENUE.'], escaped: [S.bossOut ? 'THE MINISTER CROSSED THE BORDER.' : 'A PATIENT BOARDED THE BUS TO SEATTLE.', S.bossOut ? 'HE WILL BE TREATED IN A PRIVATE US CLINIC.' : 'THEY WILL BE TREATED IN THE UNITED STATES.'], scandal: ['THE CAMERA CAUGHT YOU ON LIVE TV.', 'THE MINISTER HAS NEVER MET YOU.'] }[S.why];
   if (!S.win && why) { g.fillText(why[0], VW / 2, 160); g.fillStyle = '#aaa'; g.fillText(why[1], VW / 2, 190); }
   g.fillStyle = '#fff'; g.fillText(`CASES FOUND: ${S.found}/${S.m.sick}`, VW / 2, 240);
   g.fillStyle = '#7aff9a'; g.fillText(`PROVINCE SAVED: ${money(S.saved)}`, VW / 2, 272);
-  g.fillStyle = '#7ae0ff'; g.fillText(`REFERRED FOR TREATMENT: ${S.referred}`, VW / 2, 304);
   g.font = font(10); g.fillStyle = '#aaa';
   g.fillText(S.win ? (MI + 1 < MISSIONS.length ? 'THE MINISTER IS PLEASED.' : 'FINAL SHIFT COMPLETE.') : 'THE MINISTER IS DISAPPOINTED. TRY AGAIN.', VW / 2, 360);
   if (blinkSlow()) { g.fillStyle = '#ff2a3a'; g.fillText('PRESS START', VW / 2, 440); }
@@ -911,8 +927,7 @@ function drawEnd() {
   g.font = font(11);
   g.fillStyle = '#fff'; g.fillText(`FILES CLOSED: ${TOT.closed}`, VW / 2, 96);
   g.fillStyle = '#7aff9a'; g.fillText(`PROVINCE SAVED: ${money(TOT.saved)}`, VW / 2, 122);
-  g.fillStyle = '#7ae0ff'; g.fillText(`YOU REFERRED FOR TREATMENT: ${TOT.referred}`, VW / 2, 148);
-  g.fillStyle = '#ff2a3a'; g.fillText('THE SYSTEM REFERRED: 0', VW / 2, 174);
+  g.fillStyle = '#ff2a3a'; g.fillText('PATIENTS REFERRED FOR TREATMENT: 0', VW / 2, 148);
   g.font = font(11); g.fillStyle = '#fff'; wrapLines(TAG, 700).forEach((l, i) => g.fillText(l, VW / 2, 240 + i * 22));
   g.font = font(9); g.fillStyle = '#aaa'; wrapLines(FACT, 720).forEach((l, i) => g.fillText(l, VW / 2, 300 + i * 18));
   if (blinkSlow()) { g.font = font(11); g.fillStyle = '#ff2a3a'; g.fillText('GAME OVER - PRESS START', VW / 2, 460); }
