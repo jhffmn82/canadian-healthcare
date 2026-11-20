@@ -22,6 +22,7 @@
   #start h1 { color: var(--hot); font-size: clamp(16px, 4.5vmin, 46px); text-shadow: 4px 4px 0 var(--gold); margin: 0; }
   #start.flash { animation: flash .6s ease-out; }
   @keyframes flash { 0% { filter: brightness(3); } 100% { filter: brightness(1); } }
+  #start small { margin-top: 1.2em; font-size: clamp(9px, 1.9vmin, 17px); color: #ddd; text-shadow: 2px 2px 0 #000; max-width: 90%; }
   #start p { font-size: clamp(10px, 2.2vmin, 20px); animation: blink 1s steps(1) infinite; color: var(--gold); text-shadow: 3px 3px 0 #000; margin: 0; }
   #game { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; display: none; }
   #skip { position: absolute; top: 3%; right: 3%; font: inherit; font-size: clamp(8px, 1.4vmin, 13px); background: #000; color: #fff; border: 2px solid #fff; padding: .6em .8em; display: none; cursor: pointer; z-index: 5; }
@@ -36,7 +37,7 @@
   <div id="cap"></div>
   <div id="card"><div id="tag"></div><div class="fact" id="fact"></div></div>
   <div id="coin"><span>INSERT COIN</span><small>PRESS START</small></div>
-  <div id="start"><p>PRESS START</p></div>
+  <div id="start"><p>PRESS START</p><small id="tagline">Game is loosely based on a very real single payer health care system</small></div>
   <button id="skip">SKIP INTRO</button>
   <div id="pad">
     <div><button data-k="L">&#9664;</button><div style="flex-direction:column"><button data-k="U">&#9650;</button><button data-k="D">&#9660;</button></div><button data-k="R">&#9654;</button></div>
@@ -163,16 +164,16 @@ const IMG = { final: img('stills/final.jpg'), 'still-3': img('stills/still-3.jpg
 const VEH = {}; for (const v of ['bike', 'limo', 'suv', 'suvthrow', 'pickup', 'minivan', 'taxi', 'hatch', 'obj-0', 'obj-1', 'obj-2', 'obj-3']) VEH[v] = img(`art/veh-${v}.png`);
 const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => 'c' + (a + i));
 const MAPS = {
-  street: { panels: ['bg-1', 'bg-2', 'bg-3'], order: [0, 1, 2, 0], top: 440, bot: 508, crowd: 60, cast: range(2, 17), music: 'street' },
+  street: { panels: ['bg-1', 'bg-2', 'bg-3'], order: [0, 1, 2, 0], top: 440, bot: 508, crowd: 60, cast: [...range(2, 17), ...range(52, 87)], music: 'street' },
   rink: { panels: ['rk-1', 'rk-2', 'rk-3'], order: [0, 1, 2], top: 352, bot: 505, music: 'hockey', hockey: true, goalL: 180, goalR: 4680, goalY: 420 },
   ski: { panels: ['sk-1', 'sk-2', 'sk-3'], order: [0, 1, 2, 0], top: 450, bot: 512, crowd: 55, cast: range(25, 32), music: 'ski' },
-  depot: { panels: ['dp-1', 'dp-2', 'dp-3'], order: [0, 1, 2], top: 440, bot: 512, crowd: 50, cast: ['c33', 'c34', 'c35', 'c33', 'c34', 'c35', ...range(2, 17)], music: 'street' },
+  depot: { panels: ['dp-1', 'dp-2', 'dp-3'], order: [0, 1, 2], top: 440, bot: 512, crowd: 50, cast: ['c33', 'c34', 'c35', ...range(2, 17), ...range(52, 87)], music: 'street' },
   road: { panels: ['hw-1', 'hw-2', 'hw-3'], order: [0, 1, 2], lanes: [330, 392, 454, 516], music: 'chase' },
-  street2: { panels: ['fd-1', 'fd-2', 'fd-3'], order: [0, 1, 2, 0], top: 440, bot: 508, crowd: 60, cast: range(2, 17), music: 'street' },
+  street2: { panels: ['fd-1', 'fd-2', 'fd-3'], order: [0, 1, 2, 0], top: 440, bot: 508, crowd: 60, cast: [...range(2, 17), ...range(52, 87)], music: 'street' },
   rink2: { panels: ['pr-1', 'pr-2', 'pr-3'], order: [0, 1, 2], top: 352, bot: 505, music: 'hockey', hockey: true, goalL: 180, goalR: 4680, goalY: 420 },
   ski2: { panels: ['sv-1', 'sv-2', 'sv-3'], order: [0, 1, 2, 0], top: 450, bot: 512, crowd: 55, cast: range(25, 32), music: 'ski' },
-  depot2: { panels: ['dn-1', 'dn-2', 'dn-3'], order: [0, 1, 2], top: 440, bot: 512, crowd: 50, cast: ['c33', 'c34', 'c35', 'c33', 'c34', 'c35', ...range(2, 17)], music: 'street' },
-  hill: { panels: ['pl-1', 'pl-2', 'pl-3'], order: [0, 1, 2], top: 460, bot: 514, crowd: 48, cast: ['c36', 'c37', 'c36', 'c37', 'c2', 'c8', 'c9', 'c15', 'c3', 'c11'], music: 'title', limo: 3560 },
+  depot2: { panels: ['dn-1', 'dn-2', 'dn-3'], order: [0, 1, 2], top: 440, bot: 512, crowd: 50, cast: ['c33', 'c34', 'c35', ...range(2, 17), ...range(52, 87)], music: 'street' },
+  hill: { panels: ['pl-1', 'pl-2', 'pl-3'], order: [0, 1, 2], top: 460, bot: 514, crowd: 48, cast: ['c36', 'c37', 'c2', 'c8', 'c9', 'c15', 'c3', 'c11', 'c54', 'c66', 'c67', 'c71', 'c74', 'c79', 'c82', 'c85', 'c87', 'c53', 'c60', 'c73'], music: 'title', limo: 3560 },
 };
 const PANELS = {}; for (const m of Object.values(MAPS)) for (const p of m.panels) PANELS[p] = img(`art/${p}.jpg`);
 const BRIEFS = []; for (let i = 1; i <= 10; i++) BRIEFS.push(img(`stills/brief-${i}.jpg`));
@@ -183,7 +184,10 @@ let A = null;   // atlas frames
 const NPCV = { c2: 'm2', c3: 'f1', c4: 'm3', c5: 'fo', c6: 'm1', c7: 'm3', c8: 'f2', c9: 'mo', c10: 'f1', c11: 'm1', c12: 'f2', c13: 'm1',
   c14: 'f1', c15: 'f2', c16: 'm2', c17: 'mo', c18: 'm1', c19: 'm3', c20: 'm1', c21: 'm1', c22: 'm2', c23: 'm2', c24: 'm2', c25: 'f1',
   c26: 'm1', c27: 'm2', c28: 'f2', c29: 'mo', c30: 'f1', c31: 'm3', c32: 'f2', c33: 'f2', c34: 'mo', c35: 'm1', c36: 'f2', c37: 'mo',
-  c38: 'f2', c39: 'm1', c40: 'm3', c42: 'm1', c43: 'm3', c44: 'm1', c45: 'm2', c46: 'm2', c47: 'm1', c48: 'm1', c49: 'm3', c50: 'm2', c51: 'm2' };
+  c38: 'f2', c39: 'm1', c40: 'm3', c42: 'm1', c43: 'm3', c44: 'm1', c45: 'm2', c46: 'm2', c47: 'm1', c48: 'm1', c49: 'm3', c50: 'm2', c51: 'm2',
+  c52: 'm2', c53: 'f2', c54: 'm2', c55: 'f1', c56: 'm1', c57: 'm1', c58: 'f1', c59: 'm3', c60: 'mo', c61: 'f2', c62: 'm3', c63: 'fo',
+  c64: 'm1', c65: 'm3', c66: 'mo', c67: 'f2', c68: 'fo', c69: 'm1', c70: 'f2', c71: 'f2', c72: 'fo', c73: 'm2', c74: 'm2', c75: 'm3',
+  c76: 'f1', c77: 'm1', c78: 'm1', c79: 'mo', c80: 'f1', c81: 'm2', c82: 'm2', c83: 'f2', c84: 'f1', c85: 'm2', c86: 'mo', c87: 'm1' };
 const say4 = (q, line) => talk(`npc/${NPCV[q.c] || 'm2'}-${line}`);
 const GEAR = ['c25', 'c26', 'c28', 'c32'];          // helmets and goggles hide symptoms
 const MISSIONS = [
@@ -779,6 +783,7 @@ function updateHockey(dt) {
 }
 
 // ---------- drawing ----------
+const vlenBody = e => (A[e.c] && A[e.c].dead ? A[e.c].dead[0][2] * 0.45 : 60);
 const depth = y => (BOT > TOP ? 0.9 + 0.1 * clamp((y - TOP) / (BOT - TOP), 0, 1) : 1);
 function spr(fr, x, y, flip, k = 1) {
   const [sx, sy, w, h, ax, ay] = fr;
@@ -855,6 +860,14 @@ function drawPlay() {
     if (e === S.puck) { g.fillStyle = '#111'; g.beginPath(); g.ellipse(e.x, e.y, 9, 4, 0, 0, 7); g.fill(); continue; }
     if (e.state === 'dead') {
       g.globalAlpha = clamp(10 - e.dt, 0, 1);
+      if (e.dt > 0.25) {
+        const grow = Math.min(1, (e.dt - 0.25) / 1.4), len = vlenBody(e) * (0.45 + 0.4 * grow), dep = depth(e.y);
+        g.globalAlpha = clamp(10 - e.dt, 0, 1) * 0.9;
+        g.fillStyle = '#5a0008'; g.beginPath(); g.ellipse(e.x, e.y + 2, len * dep, (8 + 9 * grow) * dep, 0, 0, 7); g.fill();
+        g.fillStyle = '#8a0012'; g.beginPath(); g.ellipse(e.x - 6, e.y, len * 0.75 * dep, (5 + 6 * grow) * dep, 0, 0, 7); g.fill();
+        g.fillStyle = 'rgba(255,120,120,.35)'; g.fillRect(e.x - len * 0.4 * dep, e.y - 3, 10, 2);
+        g.globalAlpha = clamp(10 - e.dt, 0, 1);
+      }
       if (e.flashT > 0) g.filter = 'brightness(3)';
       if (e.dt < 0.25) { g.save(); g.translate(e.x, e.y); g.rotate((e.fall || 1) * e.dt * 6); spr(A[e.c].walk[0], 0, 0, e.dir < 0, depth(e.y)); g.restore(); }
       else spr(A[e.c].dead[0], e.x, e.y, e.dir < 0, depth(e.y));
